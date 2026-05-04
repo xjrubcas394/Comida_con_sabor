@@ -47,7 +47,6 @@ function Perfil() {
       });
       if (resV.ok) {
         const dataVentas = await resV.json();
-        // 👇 EL ARREGLO ESTÁ AQUÍ: Extraemos 'results' si viene paginado
         setMisVentas(dataVentas.results ? dataVentas.results : dataVentas);
       }
 
@@ -125,6 +124,20 @@ function Perfil() {
     } catch (err) { console.error(err); }
   };
 
+  const marcarComoEnviado = async (pedidoId) => {
+    if (!confirm("¿Marcar este pedido como enviado? El cliente recibirá su paquete pronto.")) return;
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`http://localhost:8000/api/catalogo/pedidos/${pedidoId}/marcar_enviado/`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        cargarDatos();
+      }
+    } catch (err) { console.error(err); }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
@@ -159,9 +172,8 @@ function Perfil() {
                       <th className="p-4 font-semibold text-gray-700">Fecha</th>
                       <th className="p-4 font-semibold text-gray-700">Producto</th>
                       <th className="p-4 font-semibold text-gray-700">Cant.</th>
-                      <th className="p-4 font-semibold text-gray-700">Total</th>
-                      <th className="p-4 font-semibold text-gray-700">Cliente</th>
-                      <th className="p-4 font-semibold text-gray-700">Estado</th>
+                      <th className="p-4 font-semibold text-gray-700">Cliente y Dirección</th>
+                      <th className="p-4 font-semibold text-gray-700 text-center">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -170,12 +182,23 @@ function Perfil() {
                         <td className="p-4 text-gray-600">{new Date(venta.fecha_pedido).toLocaleDateString()}</td>
                         <td className="p-4 font-medium text-gray-900">{venta.nombre_producto}</td>
                         <td className="p-4 text-gray-600">{venta.cantidad}</td>
-                        <td className="p-4 text-green-600 font-bold">{(venta.cantidad * parseFloat(venta.precio_unitario)).toFixed(2)}€</td>
-                        <td className="p-4 text-gray-600">{venta.nombre_cliente}</td>
                         <td className="p-4">
-                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                            {venta.estado_pedido}
-                          </span>
+                          <div className="font-medium text-gray-900">{venta.nombre_cliente}</div>
+                          <div className="text-sm text-gray-500">{venta.direccion_cliente}, {venta.ciudad_cliente}</div>
+                        </td>
+                        <td className="p-4 text-center">
+                          {venta.estado_pedido === 'Pendiente' ? (
+                            <button 
+                              onClick={() => marcarComoEnviado(venta.pedido_id)}
+                              className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+                            >
+                              Marcar Enviado
+                            </button>
+                          ) : (
+                            <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1.5 rounded-lg">
+                              {venta.estado_pedido}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}

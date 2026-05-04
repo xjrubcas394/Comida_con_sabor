@@ -44,10 +44,14 @@ class ProductoViewSet(viewsets.ModelViewSet):
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
-    # Permitimos que cualquiera pueda crear un pedido (comprar), 
-    # pero solo los administradores podrían ver el listado total.
-    # Por ahora, le ponemos AllowAny para facilitar la compra.
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny] 
+
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    def marcar_enviado(self, request, pk=None):
+        pedido = self.get_object()
+        pedido.estado = 'Enviado'
+        pedido.save()
+        return Response({'status': 'Pedido marcado como enviado'})
 
 class MisVentasList(generics.ListAPIView):
     serializer_class = VentaProductorSerializer

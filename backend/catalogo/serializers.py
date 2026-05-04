@@ -59,12 +59,18 @@ class PedidoSerializer(serializers.ModelSerializer):
         return pedido
     
 class VentaProductorSerializer(serializers.ModelSerializer):
-    # Traemos datos de otras tablas a través de las relaciones (ForeignKey)
     nombre_producto = serializers.CharField(source='producto.nombre', read_only=True)
     fecha_pedido = serializers.DateTimeField(source='pedido.fecha_creacion', read_only=True)
+    
+    # Datos del cliente
     nombre_cliente = serializers.CharField(source='pedido.nombre_cliente', read_only=True)
+    direccion_cliente = serializers.CharField(source='pedido.direccion', read_only=True)
+    ciudad_cliente = serializers.CharField(source='pedido.ciudad', read_only=True)
+    
+    # Datos para el control de estado
     estado_pedido = serializers.CharField(source='pedido.estado', read_only=True)
+    pedido_id = serializers.IntegerField(source='pedido.id', read_only=True)
 
     class Meta:
         model = DetallePedido
-        fields = ['id', 'nombre_producto', 'cantidad', 'precio_unitario', 'fecha_pedido', 'nombre_cliente', 'estado_pedido']
+        fields = ['id', 'pedido_id', 'nombre_producto', 'cantidad', 'precio_unitario', 'fecha_pedido', 'nombre_cliente', 'direccion_cliente', 'ciudad_cliente', 'estado_pedido']
