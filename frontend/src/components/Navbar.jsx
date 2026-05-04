@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 function Navbar() {
@@ -13,6 +13,8 @@ function Navbar() {
   
   // 3. Calculamos el precio total (multiplicando cantidad por precio unitario)
   const precioTotal = carrito.reduce((total, item) => total + (parseFloat(item.precio) * item.cantidad), 0);
+
+  const navigate = useNavigate();
 
   return (
     <>
@@ -109,7 +111,6 @@ function Navbar() {
           )}
         </div>
 
-        {/* Pie del carrito: Total y Botón de Pago */}
         {carrito.length > 0 && (
           <div className="border-t border-gray-100 p-6 bg-gray-50">
             <div className="flex justify-between items-center mb-4 text-lg font-bold text-gray-900">
@@ -117,7 +118,13 @@ function Navbar() {
               <span>{precioTotal.toFixed(2)}€</span>
             </div>
             <p className="text-xs text-gray-500 mb-4 text-center">Impuestos y gastos de envío calculados en el pago.</p>
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-md transition-colors">
+            <button 
+              onClick={() => {
+                setIsCartAbierto(false);
+                navigate('/checkout');
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-md transition-colors"
+            >
               Proceder al Pago
             </button>
           </div>

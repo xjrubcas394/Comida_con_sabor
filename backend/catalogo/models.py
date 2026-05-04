@@ -41,3 +41,34 @@ class ProductoImagen(models.Model):
 
     def __str__(self):
         return f"Imagen de {self.producto.nombre}"
+
+class Pedido(models.Model):
+    nombre_cliente = models.CharField(max_length=200)
+    email = models.EmailField()
+    direccion = models.CharField(max_length=255)
+    ciudad = models.CharField(max_length=100)
+    
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    ESTADOS = [
+        ('Pendiente', 'Pendiente'),
+        ('Enviado', 'Enviado'),
+        ('Entregado', 'Entregado'),
+    ]
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
+
+    def __str__(self):
+        return f"Pedido #{self.id} - {self.nombre_cliente} ({self.fecha_creacion.strftime('%d/%m/%Y')})"
+
+class DetallePedido(models.Model):
+    pedido = models.ForeignKey(Pedido, related_name='detalles', on_delete=models.CASCADE)
+
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True)
+    
+    cantidad = models.PositiveIntegerField()
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        nombre_prod = self.producto.nombre if self.producto else "Producto Eliminado"
+        return f"{self.cantidad}x {nombre_prod} (Pedido #{self.pedido.id})"
