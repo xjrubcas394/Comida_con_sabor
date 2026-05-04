@@ -2,191 +2,283 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function Perfil() {
-  const [misProductos, setMisProductos] = useState([]);
-  const [categorias, setCategorias] = useState([]); // Guardará las categorías para el select
+  const [datosPaginados, setDatosPaginados] = useState({ results: [], next: null, previous: null });  
+  const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false); // Controla si se ve el formulario
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [imagen, setImagen] = useState(null);
+  
+  // NUEVOS ESTADOS PARA VENTAS Y PESTAÑAS
+  const [misVentas, setMisVentas] = useState([]);
+  const [pestañaActiva, setPestañaActiva] = useState('productos'); 
   const navigate = useNavigate();
 
-  // Estados para el formulario
-  const [nuevoProducto, setNuevoProducto] = useState({nombre: '', precio: '', categoria: '', historia: ''});
-  const [imagen, setImagen] = useState(null);
+  const [formProducto, setFormProducto] = useState({
+    nombre: '', precio: '', categoria: '', historia: ''
+  });
 
-  const cargarDatos = async () => {
+  const ejecutarBusqueda = (e) => {
+    e.preventDefault();
+    cargarDatos(`http://localhost:8000/api/catalogo/productos/?propios=true&search=${busqueda}`);
+  };
+
+  const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?propios=true') => {
     const token = localStorage.getItem('access_token');
     try {
-      // Pedimos los productos
-      const resProductos = await fetch('http://localhost:8000/api/catalogo/productos/?propios=true', {
+      // 1. Pedimos los productos
+      const resP = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (resP.ok) {
+        const respuesta = await resP.json();
+        setDatosPaginados(respuesta); 
+      }
+
+      // 2. Pedimos las categorías
+      const resC = await fetch('http://localhost:8000/api/catalogo/categorias/');
+      if (resC.ok) {
+        const dataCategorias = await resC.json();
+        setCategorias(dataCategorias.results ? dataCategorias.results : dataCategorias);
+      }
+      
+      // 3. Pedimos las ventas del productor
+      const resV = await fetch('http://localhost:8000/api/catalogo/mis-ventas/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (resProductos.ok) setMisProductos(await resProductos.json());
-      else if (resProductos.status === 401) cerrarSesion();
+      if (resV.ok) {
+        const dataVentas = await resV.json();
+        // 👇 EL ARREGLO ESTÁ AQUÍ: Extraemos 'results' si viene paginado
+        setMisVentas(dataVentas.results ? dataVentas.results : dataVentas);
+      }
 
-      // Pedimos las categorías (no necesitan token porque son de lectura pública)
-      const resCategorias = await fetch('http://localhost:8000/api/catalogo/categorias/');
-      if (resCategorias.ok) setCategorias(await resCategorias.json());
-
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setCargando(false);
+    } catch (err) { 
+      console.error(err); 
+    } finally { 
+      setCargando(false); 
     }
   };
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  useEffect(() => { cargarDatos(); }, []);
 
-  const cerrarSesion = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    navigate('/login');
+  const prepararEdicion = (p) => {
+    setEditandoId(p.id);
+    setFormProducto({
+      nombre: p.nombre,
+      precio: p.precio,
+      categoria: p.categoria,
+      historia: p.historia || ''
+    });
+    setMostrarFormulario(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Función para manejar el envío del formulario
-  const crearProducto = async (e) => {
+  const guardarProducto = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('access_token');
+    const url = editandoId 
+      ? `http://localhost:8000/api/catalogo/productos/${editandoId}/` 
+      : 'http://localhost:8000/api/catalogo/productos/';
     
     try {
-      // PASO 1: Creamos el producto (JSON)
-      const resProducto = await fetch('http://localhost:8000/api/catalogo/productos/', {
-        method: 'POST',
+      const respuesta = await fetch(url, {
+        method: editandoId ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(nuevoProducto)
+        body: JSON.stringify(formProducto)
       });
 
-      if (resProducto.ok) {
-        const productoCreado = await resProducto.json();
+      if (respuesta.ok) {
+        const productoGuardado = await respuesta.json();
+        const idFinal = editandoId ? editandoId : productoGuardado.id;
 
         if (imagen) {
           const formData = new FormData();
           formData.append('imagen', imagen);
 
-          await fetch(`http://localhost:8000/api/catalogo/productos/${productoCreado.id}/subir_imagen/`, {
+          await fetch(`http://localhost:8000/api/catalogo/productos/${idFinal}/subir_imagen/`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
           });
         }
 
         setMostrarFormulario(false);
-        setNuevoProducto({ nombre: '', precio: '', categoria: '', historia: '' });
+        setEditandoId(null);
+        setFormProducto({ nombre: '', precio: '', categoria: '', historia: '' });
         setImagen(null);
-        cargarDatos(); 
-      } else {
-        alert("Error al crear el producto. Revisa los datos.");
+        cargarDatos();
       }
-    } catch (error) {
-      console.error("Error:", error);
-    }
+    } catch (err) { console.error(err); }
+  };
+
+  const eliminarProducto = async (id) => {
+    if (!confirm("¿Seguro que quieres eliminar este producto?")) return;
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`http://localhost:8000/api/catalogo/productos/${id}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) cargarDatos();
+    } catch (err) { console.error(err); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Panel de Productor</h1>
-        <button onClick={cerrarSesion} className="text-red-600 hover:bg-red-50 px-4 py-2 rounded font-medium transition-colors">Cerrar Sesión</button>
-      </nav>
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Panel de Productor</h1>
 
-      <main className="max-w-7xl mx-auto py-10 px-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">Tus Productos</h2>
+        {/* --- PESTAÑAS DE NAVEGACIÓN --- */}
+        <div className="flex gap-4 border-b border-gray-200 mb-8">
           <button 
-            onClick={() => setMostrarFormulario(!mostrarFormulario)}
-            className={`${mostrarFormulario ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm`}
+            onClick={() => setPestañaActiva('productos')}
+            className={`py-2 px-4 font-semibold border-b-2 transition-colors ${pestañaActiva === 'productos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            {mostrarFormulario ? 'Cancelar' : '+ Añadir Nuevo Producto'}
+            Mis Productos
+          </button>
+          <button 
+            onClick={() => setPestañaActiva('ventas')}
+            className={`py-2 px-4 font-semibold border-b-2 transition-colors ${pestañaActiva === 'ventas' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Mis Ventas
           </button>
         </div>
 
-        {/* Zona del Formulario (Se oculta/muestra) */}
-        {mostrarFormulario && (
-          <div className="bg-white p-6 rounded-xl shadow-md mb-8 border border-blue-100">
-            <h3 className="text-lg font-bold mb-4">Detalles del nuevo producto</h3>
-            <form onSubmit={crearProducto} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Nombre del producto</label>
-                <input required type="text" className="w-full border border-gray-300 p-2 rounded"
-                  value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Precio (€)</label>
-                <input required type="number" step="0.01" className="w-full border border-gray-300 p-2 rounded"
-                  value={nuevoProducto.precio} onChange={e => setNuevoProducto({...nuevoProducto, precio: e.target.value})} />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Categoría</label>
-                <select required className="w-full border border-gray-300 p-2 rounded bg-white"
-                  value={nuevoProducto.categoria} onChange={e => setNuevoProducto({...nuevoProducto, categoria: e.target.value})}>
-                  <option value="">Selecciona una categoría...</option>
-                  {categorias.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm text-gray-600 mb-1">Historia / Descripción (Opcional)</label>
-                <textarea className="w-full border border-gray-300 p-2 rounded" rows="3"
-                  value={nuevoProducto.historia} onChange={e => setNuevoProducto({...nuevoProducto, historia: e.target.value})}></textarea>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm text-gray-600 mb-1">Imagen del Producto</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={(e) => setImagen(e.target.files[0])}
-                  className="w-full border border-gray-300 p-2 rounded bg-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
-                />
-              </div>
-
-              <div className="md:col-span-2 flex justify-end mt-2">
-                <button type="submit" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">
-                  Guardar Producto
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Lista de productos */}
-        {cargando ? (
-          <p className="text-gray-500">Cargando tus productos...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {misProductos.length > 0 ? (
-              misProductos.map(p => (
-                <div key={p.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-lg text-gray-800">{p.nombre}</h3>
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{p.categoria_nombre || 'Sin categoría'}</span>
-                  </div>
-                  <p className="text-2xl text-green-600 font-bold mt-2">{p.precio}€</p>
-                  <p className="text-sm text-gray-500 mt-4 pt-4 border-t">
-                    Estado: <span className={p.estado_moderacion === 'Aprobado' ? 'text-green-600 font-semibold' : 'text-orange-500 font-semibold'}>
-                      {p.estado_moderacion}
-                    </span>
-                  </p>
-                </div>
-              ))
+        {/* --- VISTA: MIS VENTAS --- */}
+        {pestañaActiva === 'ventas' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {misVentas.length === 0 ? (
+              <p className="p-8 text-center text-gray-500">Aún no tienes ventas registradas.</p>
             ) : (
-              <p className="col-span-full text-center text-gray-500 bg-white p-10 rounded-xl border border-dashed border-gray-300">
-                Aún no has subido ningún producto. ¡Dale al botón azul para empezar!
-              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="p-4 font-semibold text-gray-700">Fecha</th>
+                      <th className="p-4 font-semibold text-gray-700">Producto</th>
+                      <th className="p-4 font-semibold text-gray-700">Cant.</th>
+                      <th className="p-4 font-semibold text-gray-700">Total</th>
+                      <th className="p-4 font-semibold text-gray-700">Cliente</th>
+                      <th className="p-4 font-semibold text-gray-700">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {misVentas.map(venta => (
+                      <tr key={venta.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4 text-gray-600">{new Date(venta.fecha_pedido).toLocaleDateString()}</td>
+                        <td className="p-4 font-medium text-gray-900">{venta.nombre_producto}</td>
+                        <td className="p-4 text-gray-600">{venta.cantidad}</td>
+                        <td className="p-4 text-green-600 font-bold">{(venta.cantidad * parseFloat(venta.precio_unitario)).toFixed(2)}€</td>
+                        <td className="p-4 text-gray-600">{venta.nombre_cliente}</td>
+                        <td className="p-4">
+                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {venta.estado_pedido}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
-      </main>
+
+        {/* --- VISTA: MIS PRODUCTOS --- */}
+        {pestañaActiva === 'productos' && (
+          <>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+              <h2 className="text-xl font-semibold text-gray-700">Catálogo Personal</h2>
+              <div className="flex gap-4 w-full md:w-auto">
+                <form onSubmit={ejecutarBusqueda} className="flex flex-1">
+                  <input 
+                    type="text" 
+                    placeholder="Buscar mis productos..." 
+                    className="border border-gray-300 rounded-l-lg p-2 w-full focus:outline-none focus:border-blue-500"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                  />
+                  <button type="submit" className="bg-gray-800 text-white px-4 py-2 rounded-r-lg hover:bg-gray-700">
+                    Buscar
+                  </button>
+                </form>
+                
+                <button 
+                  type="button"
+                  onClick={() => { 
+                    setMostrarFormulario(!mostrarFormulario); 
+                    setEditandoId(null); 
+                    setFormProducto({ nombre: '', precio: '', categoria: '', historia: '' }); 
+                    setImagen(null);
+                  }}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-bold whitespace-nowrap transition-colors"
+                >
+                  {mostrarFormulario ? 'Cancelar' : '+ Nuevo Producto'}
+                </button>
+              </div>
+            </div>
+
+            {mostrarFormulario && (
+              <form onSubmit={guardarProducto} className="bg-white p-6 rounded-xl shadow-md mb-8 grid grid-cols-2 gap-4">
+                <h2 className="col-span-2 text-xl font-bold border-b pb-2">
+                  {editandoId ? 'Editar Producto' : 'Nuevo Producto'}
+                </h2>
+                <input placeholder="Nombre" className="border p-2 rounded" value={formProducto.nombre} onChange={e => setFormProducto({...formProducto, nombre: e.target.value})} required />
+                <input placeholder="Precio" type="number" step="0.01" className="border p-2 rounded" value={formProducto.precio} onChange={e => setFormProducto({...formProducto, precio: e.target.value})} required />
+                <select className="border p-2 rounded" value={formProducto.categoria} onChange={e => setFormProducto({...formProducto, categoria: e.target.value})} required>
+                  <option value="">Categoría...</option>
+                  {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+                <textarea placeholder="Historia" className="border p-2 rounded col-span-2" value={formProducto.historia} onChange={e => setFormProducto({...formProducto, historia: e.target.value})} />
+                <div className="col-span-2">
+                  <label className="block text-sm text-gray-600 mb-1 font-medium">Foto del producto</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setImagen(e.target.files[0])}
+                    className="w-full border border-gray-300 p-2 rounded bg-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                  />
+                </div>
+                <button className="col-span-2 bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition-colors">
+                  {editandoId ? 'Guardar Cambios' : 'Crear Producto'}
+                </button>
+              </form>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {datosPaginados.results.map(p => (
+                <div key={p.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                  <h3 className="text-xl font-bold">{p.nombre}</h3>
+                  <p className="text-2xl text-green-600 font-bold mb-4">{p.precio}€</p>
+                  <div className="flex gap-2 border-t pt-4">
+                    <button onClick={() => prepararEdicion(p)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded font-medium transition-colors">Editar</button>
+                    <button onClick={() => eliminarProducto(p.id)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded font-medium transition-colors">Borrar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-8 flex justify-center gap-4">
+              <button 
+                disabled={!datosPaginados.previous}
+                onClick={() => cargarDatos(datosPaginados.previous)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              >
+                Anterior
+              </button>
+              <button 
+                disabled={!datosPaginados.next}
+                onClick={() => cargarDatos(datosPaginados.next)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
