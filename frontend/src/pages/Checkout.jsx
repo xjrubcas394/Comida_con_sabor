@@ -37,11 +37,14 @@ function Checkout() {
     };
 
     try {
-      // 3. Enviamos el paquete a nuestra nueva puerta de entrada en Django
+      const token = localStorage.getItem('access_token');
+
+      // 3. Enviamos el paquete a nuestra puerta de entrada en Django
       const respuesta = await fetch('http://localhost:8000/api/catalogo/pedidos/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });

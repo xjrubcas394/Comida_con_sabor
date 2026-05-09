@@ -5,6 +5,8 @@ import { useCart } from './context/CartContext'
 import Login from './pages/Login'
 import Perfil from './pages/Perfil'
 import Checkout from './pages/Checkout'
+import Registro from './pages/Registro';
+import PanelAdmin from './pages/PanelAdmin';
 
 // 1. Convertimos tu código anterior en un componente independiente
 function Catalogo() {
@@ -110,6 +112,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/perfil" element={<Perfil />} />
+        <Route path="/registro" element={<Registro />} />
+        <Route path="/admin" element={<PanelAdmin />} />
       </Routes>
     </>
   )

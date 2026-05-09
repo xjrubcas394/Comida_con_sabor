@@ -1,5 +1,8 @@
 from rest_framework import serializers
 from .models import Categoria, Producto, ProductoImagen, DetallePedido, Pedido
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,3 +77,24 @@ class VentaProductorSerializer(serializers.ModelSerializer):
     class Meta:
         model = DetallePedido
         fields = ['id', 'pedido_id', 'nombre_producto', 'cantidad', 'precio_unitario', 'fecha_pedido', 'nombre_cliente', 'direccion_cliente', 'ciudad_cliente', 'estado_pedido']
+
+class RegistroSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        # 1. Quitamos 'username' de la lista de campos
+        fields = ['email', 'password', 'first_name', 'last_name'] 
+
+    def create(self, validated_data):
+        email = validated_data.get('email', '')
+        
+        user = User.objects.create_user(
+            # 2. TRUCO: Le pasamos el email al campo username para que Django no se queje
+            username=email, 
+            email=email,
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', '')
+        )
+        return user

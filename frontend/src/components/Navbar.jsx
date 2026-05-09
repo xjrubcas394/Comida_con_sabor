@@ -1,20 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 function Navbar() {
-  // 1. Nos traemos más funciones de nuestro "cerebro" (el Context)
   const { carrito, eliminarDelCarrito, actualizarCantidad } = useCart();
-  
-  // 2. Nuevo estado local para controlar si el panel lateral está abierto o cerrado
   const [isCartAbierto, setIsCartAbierto] = useState(false);
+  
+  // NUEVO ESTADO: Guardamos el rol del usuario para pintar los botones
+  const [rolUsuario, setRolUsuario] = useState(null);
 
   const totalArticulos = carrito.reduce((total, item) => total + item.cantidad, 0);
-  
-  // 3. Calculamos el precio total (multiplicando cantidad por precio unitario)
   const precioTotal = carrito.reduce((total, item) => total + (parseFloat(item.precio) * item.cantidad), 0);
-
   const navigate = useNavigate();
+
+  // NUEVO: Al cargar la barra, si hay token, preguntamos quién es
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      fetch('http://localhost:8000/api/catalogo/yo/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Token inválido');
+      })
+      .then(data => setRolUsuario(data.rol))
+      .catch(() => {
+        // Si falla, borramos sesión por seguridad
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        setRolUsuario(null);
+      });
+    }
+  }, []);
 
   return (
     <>
@@ -26,11 +44,41 @@ function Navbar() {
           </Link>
           
           <div className="flex items-center gap-6">
-            <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Acceso Productores
-            </Link>
+            {localStorage.getItem('access_token') ? (
+              <>
+                {/* LOGICA INTELIGENTE: Botón Admin solo para Administradores */}
+                {rolUsuario === 'Administrador' && (
+                  <Link to="/admin" className="text-purple-600 hover:text-purple-800 font-bold transition-colors">
+                    Panel Admin
+                  </Link>
+                )}
+
+                {/* LOGICA INTELIGENTE: Botón Perfil solo para Productores */}
+                {rolUsuario === 'Productor' && (
+                  <Link to="/perfil" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                    Mis Productos
+                  </Link>
+                )}
+
+                {/* Un cliente normal solo verá "Cerrar Sesión", que es lo correcto */}
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    window.location.href = '/';
+                  }}
+                  className="text-red-600 hover:text-red-800 font-medium transition-colors"
+                >
+                  Cerrar Sesión
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                Iniciar Sesión / Registro
+              </Link>
+            )}
             
-            {/* 4. Al hacer clic, abrimos el panel cambiando el estado a true */}
+            {/* BOTÓN DEL CARRITO */}
             <button 
               onClick={() => setIsCartAbierto(true)}
               className="relative p-2 text-gray-800 hover:text-blue-600 transition-colors group"
@@ -48,7 +96,7 @@ function Navbar() {
         </div>
       </nav>
 
-      {/* 5. FONDO OSCURO (Backdrop) - Si haces clic fuera del carrito, se cierra */}
+      {/* FONDO OSCURO */}
       {isCartAbierto && (
         <div 
           className="fixed inset-0 bg-black/10 z-40 transition-opacity backdrop-blur-sm"
@@ -56,11 +104,9 @@ function Navbar() {
         />
       )}
 
-      {/* 6. PANEL LATERAL DEL CARRITO */}
-      {/* Usamos clases de Tailwind (translate-x) para que se deslice desde la derecha */}
+      {/* PANEL LATERAL DEL CARRITO */}
       <div className={`fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isCartAbierto ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
-        {/* Cabecera del panel */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-900">Tu Cesta</h2>
           <button onClick={() => setIsCartAbierto(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -68,7 +114,6 @@ function Navbar() {
           </button>
         </div>
 
-        {/* Lista de productos en el carrito */}
         <div className="flex-1 overflow-y-auto p-6">
           {carrito.length === 0 ? (
             <div className="text-center mt-10">
@@ -79,27 +124,20 @@ function Navbar() {
             <ul className="space-y-6">
               {carrito.map(producto => (
                 <li key={producto.id} className="flex gap-4 border-b border-gray-50 pb-4">
-                  {/* Foto en miniatura */}
                   <img 
                     src={producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0].imagen : ''} 
                     alt={producto.nombre} 
                     className="w-20 h-20 object-cover rounded-md bg-gray-100 border border-gray-200" 
                   />
-                  
-                  {/* Detalles y controles */}
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 line-clamp-1">{producto.nombre}</h3>
                     <p className="text-green-600 font-bold">{producto.precio}€</p>
-                    
                     <div className="flex justify-between items-center mt-3">
-                      {/* Botones de [ - 1 + ] */}
                       <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
                         <button onClick={() => actualizarCantidad(producto.id, producto.cantidad - 1)} className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 transition">-</button>
                         <span className="px-3 py-1 font-medium text-sm bg-white border-x border-gray-300">{producto.cantidad}</span>
                         <button onClick={() => actualizarCantidad(producto.id, producto.cantidad + 1)} className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 transition">+</button>
                       </div>
-                      
-                      {/* Botón de eliminar */}
                       <button onClick={() => eliminarDelCarrito(producto.id)} className="text-red-500 text-sm font-medium hover:text-red-700 transition underline">
                         Quitar
                       </button>
@@ -120,8 +158,14 @@ function Navbar() {
             <p className="text-xs text-gray-500 mb-4 text-center">Impuestos y gastos de envío calculados en el pago.</p>
             <button 
               onClick={() => {
-                setIsCartAbierto(false);
-                navigate('/checkout');
+                setIsCartAbierto(false); 
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                  alert("¡Hola! Para finalizar tu compra, por favor inicia sesión o regístrate.");
+                  navigate('/login');
+                } else {
+                  navigate('/checkout'); 
+                }
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-md transition-colors"
             >

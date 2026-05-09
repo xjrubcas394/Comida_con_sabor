@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -27,7 +27,7 @@ function Login() {
         localStorage.setItem('refresh_token', datos.refresh);
         
         // 3. Redirigimos al usuario a su nuevo perfil (que crearemos luego)
-        navigate('/perfil'); 
+        window.location.href = '/';
       } else {
         // Si las credenciales son incorrectas
         setError('Email o contraseña incorrectos.');
@@ -42,10 +42,10 @@ function Login() {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Acceso para Productores
+            Iniciar Sesión
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Gestiona tu catálogo artesanal
+            Accede a tu cuenta para comprar o vender productos artesanales
           </p>
         </div>
         
@@ -76,6 +76,11 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+          </div>
+          <div className="text-center mt-4">
+            <Link to="/registro" className="font-medium text-blue-600 hover:text-blue-500 text-sm">
+              ¿No tienes cuenta? Regístrate aquí
+            </Link>
           </div>
 
           <div>

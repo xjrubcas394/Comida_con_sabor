@@ -24,24 +24,42 @@ function Perfil() {
     cargarDatos(`http://localhost:8000/api/catalogo/productos/?propios=true&search=${busqueda}`);
   };
 
-  const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?propios=true') => {
+const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?propios=true') => {
     const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     try {
-      // 1. Pedimos los productos
+      const resYo = await fetch('http://localhost:8000/api/catalogo/yo/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (resYo.ok) {
+        const usuario = await resYo.json();
+        if (usuario.rol !== 'Productor') {
+          alert("Acceso denegado. El Panel de Control es exclusivo para Productores.");
+          navigate('/'); 
+          return; // Cortamos aquí sin quitar la pantalla de carga
+        }
+      } else {
+        navigate('/login');
+        return;
+      }
+
       const resP = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       if (resP.ok) {
         const respuesta = await resP.json();
         setDatosPaginados(respuesta); 
       }
 
-      // 2. Pedimos las categorías
       const resC = await fetch('http://localhost:8000/api/catalogo/categorias/');
       if (resC.ok) {
         const dataCategorias = await resC.json();
         setCategorias(dataCategorias.results ? dataCategorias.results : dataCategorias);
       }
       
-      // 3. Pedimos las ventas del productor
       const resV = await fetch('http://localhost:8000/api/catalogo/mis-ventas/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -50,10 +68,12 @@ function Perfil() {
         setMisVentas(dataVentas.results ? dataVentas.results : dataVentas);
       }
 
+      // SOLO quitamos el "cargando" si el productor pasó todos los controles
+      setCargando(false);
+
     } catch (err) { 
       console.error(err); 
-    } finally { 
-      setCargando(false); 
+      setCargando(false);
     }
   };
 

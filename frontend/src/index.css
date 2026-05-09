@@ -1,1 +1,10 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
