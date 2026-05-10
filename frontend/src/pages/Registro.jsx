@@ -25,12 +25,10 @@ function Registro() {
       });
 
       if (respuesta.ok) {
-        // Si se registra bien, lo mandamos directamente al Login para que entre
         alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
         navigate('/login');
       } else {
         const data = await respuesta.json();
-        // Capturamos si el usuario ya existe
         if (data.username) setError('Ese nombre de usuario ya está en uso.');
         else setError('Hubo un error al crear la cuenta. Revisa los datos.');
       }

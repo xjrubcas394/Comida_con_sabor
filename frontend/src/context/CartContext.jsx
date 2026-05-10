@@ -1,12 +1,9 @@
-import { createContext, useState, useContext, useEffect } from 'react'; // <-- Añadimos useEffect
+import { createContext, useState, useContext, useEffect } from 'react';
 
-// 1. Creamos el contexto (la "frecuencia de radio")
 const CartContext = createContext();
 
-// 2. Creamos el Provider (la "torre de transmisión")
 export function CartProvider({ children }) {
   
-  // CAMBIO 1: Al arrancar, miramos si hay un carrito guardado en el disco duro del navegador
   const [carrito, setCarrito] = useState(() => {
     try {
       const carritoGuardado = localStorage.getItem('carrito_comida_sabor');
@@ -16,38 +13,32 @@ export function CartProvider({ children }) {
     }
   });
 
-  // CAMBIO 2: Magia pura. Cada vez que la variable 'carrito' cambie (añadas, quites o modifiques), se guarda automáticamente
   useEffect(() => {
     localStorage.setItem('carrito_comida_sabor', JSON.stringify(carrito));
   }, [carrito]);
 
-  // Acción: Añadir producto al carrito
+  // Añadir producto al carrito
   const agregarAlCarrito = (producto) => {
     setCarrito((carritoActual) => {
-      // Comprobamos si el producto ya está en el carrito
       const itemExistente = carritoActual.find(item => item.id === producto.id);
       
       if (itemExistente) {
-        // Si ya está, solo le sumamos 1 a la cantidad
         return carritoActual.map(item =>
           item.id === producto.id 
             ? { ...item, cantidad: item.cantidad + 1 } 
             : item
         );
       }
-      // Si no está, lo añadimos entero y le ponemos cantidad: 1
       return [...carritoActual, { ...producto, cantidad: 1 }];
     });
   };
 
-  // Acción: Eliminar un producto entero (botón papelera)
   const eliminarDelCarrito = (productoId) => {
     setCarrito((carritoActual) => carritoActual.filter(item => item.id !== productoId));
   };
 
-  // Acción: Cambiar la cantidad con los botones [+] y [-]
   const actualizarCantidad = (productoId, nuevaCantidad) => {
-    if (nuevaCantidad < 1) return; // Evitamos que compren "0" o "-1" unidades
+    if (nuevaCantidad < 1) return;
     setCarrito((carritoActual) =>
       carritoActual.map(item =>
         item.id === productoId ? { ...item, cantidad: nuevaCantidad } : item
@@ -55,11 +46,9 @@ export function CartProvider({ children }) {
     );
   };
 
-  // Acción: Vaciar todo (al terminar la compra)
   const limpiarCarrito = () => setCarrito([]);
 
   return (
-    // "Emitimos" los datos y las funciones a toda la app
     <CartContext.Provider value={{ 
       carrito, 
       agregarAlCarrito, 
@@ -72,5 +61,4 @@ export function CartProvider({ children }) {
   );
 }
 
-// 3. Creamos un Hook personalizado para no tener que importar useContext siempre
 export const useCart = () => useContext(CartContext);

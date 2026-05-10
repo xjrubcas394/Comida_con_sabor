@@ -8,11 +8,10 @@ function Login() {
   const navigate = useNavigate();
 
   const manejarLogin = async (e) => {
-    e.preventDefault(); // Evita que la página se recargue
+    e.preventDefault();
     setError('');
 
     try {
-      // 1. Llamamos a nuestra API de Django
       const respuesta = await fetch(`${import.meta.env.VITE_API_URL}/api/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -22,14 +21,11 @@ function Login() {
       const datos = await respuesta.json();
 
       if (respuesta.ok) {
-        // 2. ¡Éxito! Guardamos los tokens en el navegador (Local Storage)
         localStorage.setItem('access_token', datos.access);
         localStorage.setItem('refresh_token', datos.refresh);
         
-        // 3. Redirigimos al usuario a su nuevo perfil (que crearemos luego)
         window.location.href = '/';
       } else {
-        // Si las credenciales son incorrectas
         setError('Email o contraseña incorrectos.');
       }
     } catch (err) {

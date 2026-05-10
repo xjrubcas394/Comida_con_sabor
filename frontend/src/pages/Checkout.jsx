@@ -17,29 +17,26 @@ function Checkout() {
 
   const procesarPago = async (e) => {
     e.preventDefault();
-    setProcesando(true); // Bloqueamos el botón temporalmente
+    setProcesando(true);
     
-    // 1. Traducimos el carrito de React al formato que espera Django
     const detallesPedido = carrito.map(item => ({
       producto: item.id,
       cantidad: item.cantidad,
-      precio_unitario: item.precio // Mandamos el precio actual por si el productor lo cambia mañana
+      precio_unitario: item.precio
     }));
 
-    // 2. Preparamos el paquete completo (Ticket padre + Líneas hijas)
     const payload = {
       nombre_cliente: formDatos.nombre,
       email: formDatos.email,
       direccion: formDatos.direccion,
       ciudad: formDatos.ciudad,
-      total: total.toFixed(2), // El total que calculamos en el frontend
+      total: total.toFixed(2),
       detalles: detallesPedido
     };
 
     try {
       const token = localStorage.getItem('access_token');
 
-      // 3. Enviamos el paquete a nuestra puerta de entrada en Django
       const respuesta = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/pedidos/`, {
         method: 'POST',
         headers: {
@@ -50,11 +47,9 @@ function Checkout() {
       });
 
       if (respuesta.ok) {
-        // 4. ¡ÉXITO! La base de datos lo ha guardado.
         limpiarCarrito();
         setPedidoCompletado(true);
       } else {
-        // Si Django rechaza el paquete (ej. faltan datos)
         console.error("Django rechazó el pedido", await respuesta.json());
         alert("Hubo un problema al procesar tu pedido. Revisa tus datos.");
       }
@@ -62,7 +57,7 @@ function Checkout() {
       console.error("Error de conexión:", error);
       alert("No se pudo conectar con el servidor de pagos.");
     } finally {
-      setProcesando(false); // Desbloqueamos el botón
+      setProcesando(false);
     }
   };
 

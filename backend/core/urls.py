@@ -23,11 +23,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Rutas de Autenticacion
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'), # El endpoint pa hacer Login
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), # El endpoint pa renovar el token
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # Rutas de nuestro Catálogo
     path('api/catalogo/', include('catalogo.urls')),
 ]
 

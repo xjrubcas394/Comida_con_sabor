@@ -26,7 +26,6 @@ const cargarPendientes = async () => {
           return;
         }
       } else {
-        // NUEVO: Si el servidor da error o no te reconoce, ¡a la calle!
         alert("Error de autenticación. Inicia sesión de nuevo.");
         navigate('/login');
         return;
@@ -41,7 +40,6 @@ const cargarPendientes = async () => {
         setProductosPendientes(data.results ? data.results : data);
       }
       
-      // SOLO quitamos el "cargando" si hemos llegado hasta aquí exitosamente
       setCargando(false); 
       
     } catch (err) {
@@ -67,7 +65,6 @@ const cargarPendientes = async () => {
       });
 
       if (res.ok) {
-        // Recargamos la lista para que el producto desaparezca de los pendientes
         cargarPendientes();
       }
     } catch (err) {

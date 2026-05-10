@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react'
 
 function App() {
-  // 1. Estado para guardar los productos y si está cargando
   const [productos, setProductos] = useState([])
   const [cargando, setCargando] = useState(true)
 
-  // 2. useEffect se ejecuta automáticamente cuando el componente carga
   useEffect(() => {
-    // 3. Hacemos la petición (fetch) a nuestra API de Django
     fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/`)
       .then(respuesta => respuesta.json())
       .then(datos => {
@@ -22,22 +19,18 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      {/* Header o Cabecera */}
       <header className="mb-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Comida Con Sabor</h1>
         <p className="text-lg text-gray-600">Catálogo Gourmet Artesanal</p>
       </header>
 
-      {/* Contenido principal */}
       {cargando ? (
         <p className="text-center text-gray-500">Cargando delicias...</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {/* 4. Recorremos el array de productos y pintamos una "tarjeta" por cada uno */}
           {productos.length > 0 ? (
             productos.map(producto => (
               <div key={producto.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                {/* 5. Si el producto tiene imágenes, mostramos la primera (o una genérica si no tiene) */}
                 <div className="h-48 bg-gray-200 overflow-hidden">
                   {producto.imagenes && producto.imagenes.length > 0 ? (
                     <img 
@@ -53,14 +46,12 @@ function App() {
                   )}
                 </div>
 
-                {/* 6. Detalles del producto */}
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-2">
                     <h2 className="text-xl font-bold text-gray-800">{producto.nombre}</h2>
                     <span className="text-lg font-semibold text-green-600">{producto.precio}€</span>
                   </div>
                   
-                  {/* Etiquetas de Trazabilidad y Categoría */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
                       {producto.categoria_nombre || "Sin Categoría"}

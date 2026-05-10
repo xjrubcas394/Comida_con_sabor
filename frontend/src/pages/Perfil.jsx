@@ -10,7 +10,6 @@ function Perfil() {
   const [busqueda, setBusqueda] = useState('');
   const [imagen, setImagen] = useState(null);
   
-  // NUEVOS ESTADOS PARA VENTAS Y PESTAÑAS
   const [misVentas, setMisVentas] = useState([]);
   const [pestañaActiva, setPestañaActiva] = useState('productos'); 
   const navigate = useNavigate();
@@ -41,7 +40,7 @@ const cargarDatos = async (url = `${import.meta.env.VITE_API_URL}/api/catalogo/p
         if (usuario.rol !== 'Productor') {
           alert("Acceso denegado. El Panel de Control es exclusivo para Productores.");
           navigate('/'); 
-          return; // Cortamos aquí sin quitar la pantalla de carga
+          return;
         }
       } else {
         navigate('/login');
@@ -68,7 +67,6 @@ const cargarDatos = async (url = `${import.meta.env.VITE_API_URL}/api/catalogo/p
         setMisVentas(dataVentas.results ? dataVentas.results : dataVentas);
       }
 
-      // SOLO quitamos el "cargando" si el productor pasó todos los controles
       setCargando(false);
 
     } catch (err) { 

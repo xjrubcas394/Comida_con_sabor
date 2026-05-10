@@ -6,14 +6,12 @@ function Navbar() {
   const { carrito, eliminarDelCarrito, actualizarCantidad } = useCart();
   const [isCartAbierto, setIsCartAbierto] = useState(false);
   
-  // NUEVO ESTADO: Guardamos el rol del usuario para pintar los botones
   const [rolUsuario, setRolUsuario] = useState(null);
 
   const totalArticulos = carrito.reduce((total, item) => total + item.cantidad, 0);
   const precioTotal = carrito.reduce((total, item) => total + (parseFloat(item.precio) * item.cantidad), 0);
   const navigate = useNavigate();
 
-  // NUEVO: Al cargar la barra, si hay token, preguntamos quién es
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -26,7 +24,6 @@ function Navbar() {
       })
       .then(data => setRolUsuario(data.rol))
       .catch(() => {
-        // Si falla, borramos sesión por seguridad
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         setRolUsuario(null);

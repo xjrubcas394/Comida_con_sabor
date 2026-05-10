@@ -8,20 +8,18 @@ import Checkout from './pages/Checkout'
 import Registro from './pages/Registro';
 import PanelAdmin from './pages/PanelAdmin';
 
-// 1. Convertimos tu código anterior en un componente independiente
 function Catalogo() {
-  // 1. Preparamos el estado para recibir la paginación (igual que en el perfil)
   const [datosPaginados, setDatosPaginados] = useState({ results: [], next: null, previous: null })
   const [cargando, setCargando] = useState(true)
   const { agregarAlCarrito } = useCart();
 
-  // 2. Función para cargar cualquier página
+  // Cargar cualquier página
   const cargarPagina = (url = `${import.meta.env.VITE_API_URL}/api/catalogo/productos/`) => {
     setCargando(true);
     fetch(url)
       .then(respuesta => respuesta.json())
       .then(datos => {
-        setDatosPaginados(datos) // Guardamos el objeto entero
+        setDatosPaginados(datos)
         setCargando(false)
       })
       .catch(error => {
@@ -46,7 +44,6 @@ function Catalogo() {
       ) : (
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* 3. Ahora leemos la lista desde 'datosPaginados.results' */}
             {datosPaginados.results.length > 0 ? (
               datosPaginados.results.map(producto => (
                 <div key={producto.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -79,7 +76,6 @@ function Catalogo() {
             )}
           </div>
 
-          {/* 4. Añadimos los controles de paginación para los clientes */}
           <div className="mt-12 flex justify-center gap-4">
             <button 
               disabled={!datosPaginados.previous}
@@ -102,7 +98,6 @@ function Catalogo() {
   )
 }
 
-// 2. Aquí definimos el enrutador principal de la aplicación
 function App() {
   return (
     <>

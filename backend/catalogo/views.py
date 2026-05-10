@@ -8,7 +8,6 @@ from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializ
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
-    # Usamos ReadOnly para que desde React solo se puedan leer las categorías (se crean desde el panel admin)
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
 
@@ -20,24 +19,19 @@ class ProductoViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'categoria__nombre']
 
     def get_queryset(self):
-        # 1. Si es administrador y pide ver los pendientes
         if self.request.query_params.get('pendientes') == 'true' and self.request.user.rol == 'Administrador':
             return Producto.objects.filter(estado_moderacion='Pendiente')
             
-        # 2. BLINDAJE EXTRA: Si es productor y pide los suyos (Ahora exigimos el rol 'Productor')
         if self.request.query_params.get('propios') == 'true' and self.request.user.rol == 'Productor':
             return Producto.objects.filter(productor=self.request.user)
             
-        # 3. Catálogo público
         return Producto.objects.filter(estado_moderacion='Aprobado')
 
     def perform_create(self, serializer):
         serializer.save(productor=self.request.user)
 
-    # NUEVO: Acción exclusiva para el Administrador
     @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
     def moderar(self, request, pk=None):
-        # Medida de seguridad extra: solo el rol Administrador puede hacer esto
         if request.user.rol != 'Administrador':
             return Response({"error": "No tienes permiso para moderar productos."}, status=403)
             
@@ -57,7 +51,6 @@ class ProductoViewSet(viewsets.ModelViewSet):
         imagen_archivo = request.FILES.get('imagen')
         
         if imagen_archivo:
-            # Creamos registro en la tabla de imagenes y lo marcamos como principal
             ProductoImagen.objects.create(
                 producto=producto, 
                 imagen=imagen_archivo, 
@@ -84,7 +77,6 @@ class MisVentasList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Magia de Django ORM: Filtramos los detalles donde el dueño del producto sea el usuario actual
         return DetallePedido.objects.filter(producto__productor=self.request.user).order_by('-pedido__fecha_creacion')
     
 class RegistroUsuarioView(generics.CreateAPIView):
