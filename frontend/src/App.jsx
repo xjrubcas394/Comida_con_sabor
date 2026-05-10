@@ -16,7 +16,7 @@ function Catalogo() {
   const { agregarAlCarrito } = useCart();
 
   // 2. Función para cargar cualquier página
-  const cargarPagina = (url = 'http://localhost:8000/api/catalogo/productos/') => {
+  const cargarPagina = (url = `${import.meta.env.VITE_API_URL}/api/catalogo/productos/`) => {
     setCargando(true);
     fetch(url)
       .then(respuesta => respuesta.json())

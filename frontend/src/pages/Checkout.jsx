@@ -40,7 +40,7 @@ function Checkout() {
       const token = localStorage.getItem('access_token');
 
       // 3. Enviamos el paquete a nuestra puerta de entrada en Django
-      const respuesta = await fetch('http://localhost:8000/api/catalogo/pedidos/', {
+      const respuesta = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/pedidos/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

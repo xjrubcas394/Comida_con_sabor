@@ -21,10 +21,10 @@ function Perfil() {
 
   const ejecutarBusqueda = (e) => {
     e.preventDefault();
-    cargarDatos(`http://localhost:8000/api/catalogo/productos/?propios=true&search=${busqueda}`);
+    cargarDatos(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/?propios=true&search=${busqueda}`);
   };
 
-const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?propios=true') => {
+const cargarDatos = async (url = `${import.meta.env.VITE_API_URL}/api/catalogo/productos/?propios=true`) => {
     const token = localStorage.getItem('access_token');
     if (!token) {
       navigate('/login');
@@ -32,7 +32,7 @@ const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?
     }
 
     try {
-      const resYo = await fetch('http://localhost:8000/api/catalogo/yo/', {
+      const resYo = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/yo/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -54,13 +54,13 @@ const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?
         setDatosPaginados(respuesta); 
       }
 
-      const resC = await fetch('http://localhost:8000/api/catalogo/categorias/');
+      const resC = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/categorias/`);
       if (resC.ok) {
         const dataCategorias = await resC.json();
         setCategorias(dataCategorias.results ? dataCategorias.results : dataCategorias);
       }
       
-      const resV = await fetch('http://localhost:8000/api/catalogo/mis-ventas/', {
+      const resV = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/mis-ventas/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (resV.ok) {
@@ -95,8 +95,8 @@ const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?
     e.preventDefault();
     const token = localStorage.getItem('access_token');
     const url = editandoId 
-      ? `http://localhost:8000/api/catalogo/productos/${editandoId}/` 
-      : 'http://localhost:8000/api/catalogo/productos/';
+      ? `${import.meta.env.VITE_API_URL}/api/catalogo/productos/${editandoId}/` 
+      : `${import.meta.env.VITE_API_URL}/api/catalogo/productos/`;
     
     try {
       const respuesta = await fetch(url, {
@@ -116,7 +116,7 @@ const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?
           const formData = new FormData();
           formData.append('imagen', imagen);
 
-          await fetch(`http://localhost:8000/api/catalogo/productos/${idFinal}/subir_imagen/`, {
+          await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/${idFinal}/subir_imagen/`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
@@ -136,7 +136,7 @@ const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?
     if (!confirm("¿Seguro que quieres eliminar este producto?")) return;
     const token = localStorage.getItem('access_token');
     try {
-      const res = await fetch(`http://localhost:8000/api/catalogo/productos/${id}/`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/${id}/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -148,7 +148,7 @@ const cargarDatos = async (url = 'http://localhost:8000/api/catalogo/productos/?
     if (!confirm("¿Marcar este pedido como enviado? El cliente recibirá su paquete pronto.")) return;
     const token = localStorage.getItem('access_token');
     try {
-      const res = await fetch(`http://localhost:8000/api/catalogo/pedidos/${pedidoId}/marcar_enviado/`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/pedidos/${pedidoId}/marcar_enviado/`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });

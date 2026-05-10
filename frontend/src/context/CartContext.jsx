@@ -1,12 +1,25 @@
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react'; // <-- Añadimos useEffect
 
 // 1. Creamos el contexto (la "frecuencia de radio")
 const CartContext = createContext();
 
 // 2. Creamos el Provider (la "torre de transmisión")
 export function CartProvider({ children }) {
-  // El estado global de nuestro carrito (empieza vacío)
-  const [carrito, setCarrito] = useState([]);
+  
+  // CAMBIO 1: Al arrancar, miramos si hay un carrito guardado en el disco duro del navegador
+  const [carrito, setCarrito] = useState(() => {
+    try {
+      const carritoGuardado = localStorage.getItem('carrito_comida_sabor');
+      return carritoGuardado ? JSON.parse(carritoGuardado) : [];
+    } catch (error) {
+      return [];
+    }
+  });
+
+  // CAMBIO 2: Magia pura. Cada vez que la variable 'carrito' cambie (añadas, quites o modifiques), se guarda automáticamente
+  useEffect(() => {
+    localStorage.setItem('carrito_comida_sabor', JSON.stringify(carrito));
+  }, [carrito]);
 
   // Acción: Añadir producto al carrito
   const agregarAlCarrito = (producto) => {

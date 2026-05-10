@@ -17,7 +17,7 @@ function Navbar() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token) {
-      fetch('http://localhost:8000/api/catalogo/yo/', {
+      fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/yo/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => {
@@ -46,21 +46,18 @@ function Navbar() {
           <div className="flex items-center gap-6">
             {localStorage.getItem('access_token') ? (
               <>
-                {/* LOGICA INTELIGENTE: Botón Admin solo para Administradores */}
                 {rolUsuario === 'Administrador' && (
                   <Link to="/admin" className="text-purple-600 hover:text-purple-800 font-bold transition-colors">
                     Panel Admin
                   </Link>
                 )}
 
-                {/* LOGICA INTELIGENTE: Botón Perfil solo para Productores */}
                 {rolUsuario === 'Productor' && (
                   <Link to="/perfil" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
                     Mis Productos
                   </Link>
                 )}
 
-                {/* Un cliente normal solo verá "Cerrar Sesión", que es lo correcto */}
                 <button 
                   onClick={() => {
                     localStorage.removeItem('access_token');
@@ -78,7 +75,6 @@ function Navbar() {
               </Link>
             )}
             
-            {/* BOTÓN DEL CARRITO */}
             <button 
               onClick={() => setIsCartAbierto(true)}
               className="relative p-2 text-gray-800 hover:text-blue-600 transition-colors group"

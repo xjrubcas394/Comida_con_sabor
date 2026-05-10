@@ -14,7 +14,7 @@ const cargarPendientes = async () => {
     }
 
     try {
-      const resYo = await fetch('http://localhost:8000/api/catalogo/yo/', {
+      const resYo = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/yo/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -32,7 +32,7 @@ const cargarPendientes = async () => {
         return;
       }
 
-      const resP = await fetch('http://localhost:8000/api/catalogo/productos/?pendientes=true', {
+      const resP = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/?pendientes=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -57,7 +57,7 @@ const cargarPendientes = async () => {
   const moderarProducto = async (id, nuevoEstado) => {
     const token = localStorage.getItem('access_token');
     try {
-      const res = await fetch(`http://localhost:8000/api/catalogo/productos/${id}/moderar/`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/${id}/moderar/`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',

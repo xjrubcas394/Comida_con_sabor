@@ -8,7 +8,7 @@ function App() {
   // 2. useEffect se ejecuta automáticamente cuando el componente carga
   useEffect(() => {
     // 3. Hacemos la petición (fetch) a nuestra API de Django
-    fetch('http://localhost:8000/api/catalogo/productos/')
+    fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/`)
       .then(respuesta => respuesta.json())
       .then(datos => {
         setProductos(datos)

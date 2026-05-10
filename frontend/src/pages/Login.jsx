@@ -13,7 +13,7 @@ function Login() {
 
     try {
       // 1. Llamamos a nuestra API de Django
-      const respuesta = await fetch('http://localhost:8000/api/token/', {
+      const respuesta = await fetch(`${import.meta.env.VITE_API_URL}/api/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

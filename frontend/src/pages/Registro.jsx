@@ -18,7 +18,7 @@ function Registro() {
     setCargando(true);
 
     try {
-      const respuesta = await fetch('http://localhost:8000/api/catalogo/registro/', {
+      const respuesta = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/registro/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
