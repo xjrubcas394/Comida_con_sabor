@@ -19,4 +19,4 @@ COPY . /app/
 RUN python manage.py collectstatic --noinput
 
 # Arrancamos encadenando los comandos: migramos, creamos usuario en silencio, y lanzamos Gunicorn
-CMD sh -c "python manage.py migrate ; python manage.py createsuperuser --noinput ; gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+CMD sh -c "python manage.py migrate ; python crear_admin.py ; gunicorn core.wsgi:application --bind 0.0.0.0:8000"
