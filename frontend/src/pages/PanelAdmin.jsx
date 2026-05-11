@@ -179,7 +179,7 @@ function PanelAdmin() {
           </div>
         )}
 
-        {/* --- VISTA: GESTIÓN DE ROLES --- */}
+        {/* GESTIÓN DE ROLES */}
         {pestañaActiva === 'usuarios' && (
           <div>
             <p className="text-gray-600 mb-6">Asigna permisos de Productor a las cuentas que soliciten vender en la plataforma.</p>
@@ -200,7 +200,7 @@ function PanelAdmin() {
                     {usuarios.map(u => (
                       <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="p-4">
-                          <div className="font-bold text-gray-900">{u.nombre} {u.apellidos}</div>
+                          <div className="font-bold text-gray-900">{u.first_name} {u.last_name}</div>
                           <div className="text-sm text-gray-500">{u.email}</div>
                         </td>
                         <td className="p-4 text-center">

@@ -12,7 +12,7 @@ class GestionUsuariosView(APIView):
 
     def get(self, request):
         # Buscamos a todos los usuarios menos a ti mismo (para no quitarte tus propios poderes por error)
-        usuarios = User.objects.exclude(id=request.user.id).values('id', 'email', 'nombre', 'apellidos', 'rol')
+        usuarios = User.objects.exclude(id=request.user.id).values('id', 'email', 'first_name', 'last_name', 'rol')
         return Response(list(usuarios))
 
     def patch(self, request, pk):
