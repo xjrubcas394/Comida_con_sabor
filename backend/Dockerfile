@@ -18,5 +18,5 @@ COPY . /app/
 # Recopilamos el CSS de tu panel de Administrador para que se vea bien
 RUN python manage.py collectstatic --noinput
 
-# Arrancamos Gunicorn
-CMD gunicorn core.wsgi:application --bind 0.0.0.0:8000
+# Arrancamos encadenando los comandos: migramos, creamos usuario en silencio, y lanzamos Gunicorn
+CMD sh -c "python manage.py migrate ; python manage.py createsuperuser --noinput ; gunicorn core.wsgi:application --bind 0.0.0.0:8000"
