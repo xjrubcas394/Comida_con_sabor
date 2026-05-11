@@ -20,6 +20,7 @@ try:
     user.set_password(password)
     user.is_staff = True
     user.is_superuser = True
+    user.is_active = True
     
     # Si tienes un campo de rol en tu modelo, lo rellenamos para evitar errores
     if hasattr(user, 'rol'):
