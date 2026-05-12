@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from .models import Categoria, Producto, ProductoImagen, Pedido, DetallePedido
 from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializer, VentaProductorSerializer, RegistroSerializer
+from django.db.models import Q
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -19,12 +20,25 @@ class ProductoViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'categoria__nombre']
 
     def get_queryset(self):
-        if self.request.query_params.get('pendientes') == 'true' and self.request.user.rol == 'Administrador':
-            return Producto.objects.filter(estado_moderacion='Pendiente')
+        user = self.request.user
+        
+        # Si no hay usuario logueado, solo ve los aprobados
+        if not user.is_authenticated:
+            return Producto.objects.filter(estado_moderacion='Aprobado')
             
-        if self.request.query_params.get('propios') == 'true' and self.request.user.rol == 'Productor':
-            return Producto.objects.filter(productor=self.request.user)
+        # El Administrador puede ver y operar todo
+        if user.rol == 'Administrador':
+            if self.request.query_params.get('pendientes') == 'true':
+                return Producto.objects.filter(estado_moderacion='Pendiente')
+            return Producto.objects.all()
             
+        # El Productor ve los aprobados del catálogo sus propios productos
+        if user.rol == 'Productor':
+            if self.request.query_params.get('propios') == 'true':
+                return Producto.objects.filter(productor=user)
+            return Producto.objects.filter(Q(estado_moderacion='Aprobado') | Q(productor=user))
+            
+        # El Cliente normal solo ve los aprobados
         return Producto.objects.filter(estado_moderacion='Aprobado')
 
     def perform_create(self, serializer):
