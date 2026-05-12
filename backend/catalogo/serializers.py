@@ -31,8 +31,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         read_only_fields = ['productor', 'estado_moderacion']
 
     def get_productor_nombre(self, obj):
-        nombre = f"{obj.productor.first_name} {obj.productor.last_name}".strip()
-        return nombre if nombre else obj.productor.email
+        return obj.productor.email
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
     class Meta:
