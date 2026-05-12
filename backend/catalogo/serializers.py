@@ -16,9 +16,9 @@ class ProductoImagenSerializer(serializers.ModelSerializer):
 
 class ProductoSerializer(serializers.ModelSerializer):
     imagenes = ProductoImagenSerializer(many=True, read_only=True)
-    
     categoria_nombre = serializers.ReadOnlyField(source='categoria.nombre')
-    productor_nombre = serializers.ReadOnlyField(source='productor.nombre_completo')
+    
+    productor_nombre = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
@@ -28,8 +28,11 @@ class ProductoSerializer(serializers.ModelSerializer):
             'categoria', 'categoria_nombre', 'productor', 'productor_nombre',
             'imagenes'
         ]
-        
         read_only_fields = ['productor', 'estado_moderacion']
+
+    def get_productor_nombre(self, obj):
+        nombre = f"{obj.productor.first_name} {obj.productor.last_name}".strip()
+        return nombre if nombre else obj.productor.email
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
     class Meta:
