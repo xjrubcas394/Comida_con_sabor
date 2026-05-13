@@ -7,7 +7,8 @@ from .models import Categoria, Producto, ProductoImagen, Pedido, DetallePedido
 from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializer, VentaProductorSerializer, RegistroSerializer
 from django.db.models import Q
 from django.conf import settings
-import requests
+import urllib.request
+import json
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -83,7 +84,12 @@ class ProductoViewSet(viewsets.ModelViewSet):
         prompt = f"Eres un experto sumiller y gastrónomo. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para este producto gourmet. Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
         
         API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
-        headers = {"Authorization": f"Bearer {getattr(settings, 'HUGGINGFACE_API_KEY', '')}"}
+        api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         
         payload = {
             "inputs": f"[INST] {prompt} [/INST]",
@@ -91,15 +97,22 @@ class ProductoViewSet(viewsets.ModelViewSet):
         }
         
         try:
-            response = requests.post(API_URL, headers=headers, json=payload)
-            if response.status_code == 200:
-                data = response.json()
-                # Extraemos solo la respuesta de la IA, limpiando el prompt inicial
-                respuesta_ia = data[0]['generated_text'].split('[/INST]')[-1].strip()
-                return Response({'recomendacion': respuesta_ia})
-            else:
-                return Response({'error': 'La IA está saturada, inténtalo en unos segundos.'}, status=503)
-                
+            # Convertimos los datos a formato JSON
+            data = json.dumps(payload).encode('utf-8')
+            # Preparamos la petición nativa de Python
+            req = urllib.request.Request(API_URL, data=data, headers=headers)
+            
+            # Ejecutamos la petición
+            with urllib.request.urlopen(req) as response:
+                if response.getcode() == 200:
+                    respuesta_json = json.loads(response.read().decode('utf-8'))
+                    respuesta_ia = respuesta_json[0]['generated_text'].split('[/INST]')[-1].strip()
+                    return Response({'recomendacion': respuesta_ia})
+                else:
+                    return Response({'error': 'La IA está saturada.'}, status=503)
+                    
+        except urllib.error.URLError as e:
+            return Response({'error': f'Error de conexión: {str(e)}'}, status=500)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
