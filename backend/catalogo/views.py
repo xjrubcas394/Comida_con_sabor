@@ -81,10 +81,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        prompt = f"Eres un experto sumiller y gastrónomo. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para este producto gourmet. Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
-        
-        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
-        
+        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta/v1/chat/completions"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
@@ -93,24 +90,32 @@ class ProductoViewSet(viewsets.ModelViewSet):
         }
         
         payload = {
-            "inputs": f"[INST] {prompt} [/INST]",
-            "parameters": {"max_new_tokens": 150, "temperature": 0.7}
+            "model": "HuggingFaceH4/zephyr-7b-beta",
+            "messages": [
+                {
+                    "role": "system", 
+                    "content": "Eres un experto sumiller y gastrónomo. Responde siempre en español. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para el producto que te indique el usuario."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
+                }
+            ],
+            "max_tokens": 150, 
+            "temperature": 0.7
         }
         
         try:
-            # Convertimos los datos a formato JSON
             data = json.dumps(payload).encode('utf-8')
-            # Preparamos la petición nativa de Python
             req = urllib.request.Request(API_URL, data=data, headers=headers)
             
-            # Ejecutamos la petición
             with urllib.request.urlopen(req) as response:
                 if response.getcode() == 200:
                     respuesta_json = json.loads(response.read().decode('utf-8'))
-                    respuesta_ia = respuesta_json[0]['generated_text'].split('[/INST]')[-1].strip()
+                    respuesta_ia = respuesta_json['choices'][0]['message']['content'].strip()
                     return Response({'recomendacion': respuesta_ia})
                 else:
-                    return Response({'error': 'La IA está saturada.'}, status=503)
+                    return Response({'error': 'La IA está saturada, reintenta en unos segundos.'}, status=503)
                     
         except urllib.error.URLError as e:
             return Response({'error': f'Error de conexión: {str(e)}'}, status=500)
