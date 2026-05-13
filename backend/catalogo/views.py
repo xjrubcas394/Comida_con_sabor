@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.conf import settings
 import urllib.request
 import json
+from urllib.error import URLError, HTTPError
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -81,7 +82,8 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta/v1/chat/completions"
+        # 1. Usamos la RUTA GLOBAL de Hugging Face
+        API_URL = "https://api-inference.huggingface.co/v1/chat/completions"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
@@ -89,6 +91,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
             "Content-Type": "application/json"
         }
         
+        # 2. El modelo se especifica aquí dentro
         payload = {
             "model": "HuggingFaceH4/zephyr-7b-beta",
             "messages": [
@@ -117,8 +120,12 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 else:
                     return Response({'error': 'La IA está saturada, reintenta en unos segundos.'}, status=503)
                     
-        except urllib.error.URLError as e:
-            return Response({'error': f'Error de conexión: {str(e)}'}, status=500)
+        except HTTPError as e:
+            # 3. EL CHIVATO: Si falla, leemos exactamente qué nos dice Hugging Face
+            error_body = e.read().decode('utf-8')
+            return Response({'error': f'Error de IA (HTTP {e.code}): {error_body}'}, status=500)
+        except URLError as e:
+            return Response({'error': f'Error de red: {str(e)}'}, status=500)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
