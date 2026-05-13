@@ -82,8 +82,8 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        # 1. Usamos la RUTA GLOBAL de Hugging Face
-        API_URL = "https://api-inference.huggingface.co/v1/chat/completions"
+        # 1. Ruta directa y clásica al modelo (sin el /v1/chat/completions)
+        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
@@ -91,21 +91,20 @@ class ProductoViewSet(viewsets.ModelViewSet):
             "Content-Type": "application/json"
         }
         
-        # 2. El modelo se especifica aquí dentro
+        # 2. Formato de etiquetas exacto que exige Zephyr
+        prompt_formateado = (
+            "<|system|>\nEres un experto sumiller y gastrónomo. Responde siempre en español. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para el producto que te indique el usuario.</s>\n"
+            f"<|user|>\nProducto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}.</s>\n"
+            "<|assistant|>\n"
+        )
+        
         payload = {
-            "model": "HuggingFaceH4/zephyr-7b-beta",
-            "messages": [
-                {
-                    "role": "system", 
-                    "content": "Eres un experto sumiller y gastrónomo. Responde siempre en español. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para el producto que te indique el usuario."
-                },
-                {
-                    "role": "user", 
-                    "content": f"Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
-                }
-            ],
-            "max_tokens": 150, 
-            "temperature": 0.7
+            "inputs": prompt_formateado,
+            "parameters": {
+                "max_new_tokens": 150, 
+                "temperature": 0.7,
+                "return_full_text": False
+            }
         }
         
         try:
@@ -115,13 +114,12 @@ class ProductoViewSet(viewsets.ModelViewSet):
             with urllib.request.urlopen(req) as response:
                 if response.getcode() == 200:
                     respuesta_json = json.loads(response.read().decode('utf-8'))
-                    respuesta_ia = respuesta_json['choices'][0]['message']['content'].strip()
+                    respuesta_ia = respuesta_json[0]['generated_text'].strip()
                     return Response({'recomendacion': respuesta_ia})
                 else:
                     return Response({'error': 'La IA está saturada, reintenta en unos segundos.'}, status=503)
                     
         except HTTPError as e:
-            # 3. EL CHIVATO: Si falla, leemos exactamente qué nos dice Hugging Face
             error_body = e.read().decode('utf-8')
             return Response({'error': f'Error de IA (HTTP {e.code}): {error_body}'}, status=500)
         except URLError as e:
