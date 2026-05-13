@@ -83,7 +83,8 @@ class ProductoViewSet(viewsets.ModelViewSet):
         
         prompt = f"Eres un experto sumiller y gastrónomo. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para este producto gourmet. Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
         
-        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
+        
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
