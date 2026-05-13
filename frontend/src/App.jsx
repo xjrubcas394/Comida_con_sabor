@@ -8,12 +8,85 @@ import Checkout from './pages/Checkout'
 import Registro from './pages/Registro';
 import PanelAdmin from './pages/PanelAdmin';
 
+function ProductoCard({ producto, agregarAlCarrito }) {
+  const [recomendacionIA, setRecomendacionIA] = useState(null);
+  const [cargandoIA, setCargandoIA] = useState(false);
+
+  const consultarMaridaje = async () => {
+    setCargandoIA(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/${producto.id}/maridaje/`);
+      const data = await res.json();
+      
+      if (res.ok) {
+        setRecomendacionIA(data.recomendacion);
+      } else {
+        alert("Error en la IA: " + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo conectar con el asistente virtual.");
+    } finally {
+      setCargandoIA(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
+      <div className="h-48 bg-gray-200 overflow-hidden shrink-0">
+        {producto.imagenes && producto.imagenes.length > 0 ? (
+          <img src={producto.imagenes[0].imagen} alt={producto.nombre} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
+        )}
+      </div>
+      
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-2">
+          <h2 className="text-xl font-bold text-gray-800">{producto.nombre}</h2>
+          <span className="text-lg font-semibold text-green-600">{producto.precio}€</span>
+        </div>
+        <div className="pt-4 border-t border-gray-100 text-sm text-gray-500 mb-4">
+          Productor: <span className="font-medium text-gray-700">{producto.productor_nombre}</span>
+        </div>
+        
+        {/* Contenedor de botones (mt-auto empuja los botones al fondo para alinear todas las tarjetas) */}
+        <div className="mt-auto flex flex-col gap-3">
+          <button 
+            onClick={() => agregarAlCarrito(producto)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg shadow-sm transition-colors flex justify-center items-center gap-2"
+          >
+            Añadir al carrito
+          </button>
+
+          {/* BOTÓN MÁGICO DE IA */}
+          <button 
+            onClick={consultarMaridaje}
+            disabled={cargandoIA}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {cargandoIA ? 'Pensando maridaje...' : '✨ Sugerir Maridaje (IA)'}
+          </button>
+
+          {/* RESPUESTA DE LA IA */}
+          {recomendacionIA && (
+            <div className="mt-1 p-3 bg-purple-50 border border-purple-200 rounded-lg shadow-sm animate-fade-in">
+              <p className="text-sm text-purple-900 font-medium italic">
+                "{recomendacionIA}"
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Catalogo() {
   const [datosPaginados, setDatosPaginados] = useState({ results: [], next: null, previous: null })
   const [cargando, setCargando] = useState(true)
   const { agregarAlCarrito } = useCart();
 
-  // Cargar cualquier página
   const cargarPagina = (url = `${import.meta.env.VITE_API_URL}/api/catalogo/productos/`) => {
     setCargando(true);
     fetch(url)
@@ -45,31 +118,13 @@ function Catalogo() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {datosPaginados.results.length > 0 ? (
+              // Usamos nuestro nuevo componente aquí
               datosPaginados.results.map(producto => (
-                <div key={producto.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  <div className="h-48 bg-gray-200 overflow-hidden">
-                    {producto.imagenes && producto.imagenes.length > 0 ? (
-                      <img src={producto.imagenes[0].imagen} alt={producto.nombre} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <h2 className="text-xl font-bold text-gray-800">{producto.nombre}</h2>
-                      <span className="text-lg font-semibold text-green-600">{producto.precio}€</span>
-                    </div>
-                    <div className="pt-4 border-t border-gray-100 text-sm text-gray-500">
-                      Productor: <span className="font-medium text-gray-700">{producto.productor_nombre}</span>
-                    </div>
-                    <button 
-                      onClick={() => agregarAlCarrito(producto)}
-                      className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg shadow-sm transition-colors flex justify-center items-center gap-2"
-                    >
-                      Añadir al carrito
-                    </button>
-                  </div>
-                </div>
+                <ProductoCard 
+                  key={producto.id} 
+                  producto={producto} 
+                  agregarAlCarrito={agregarAlCarrito} 
+                />
               ))
             ) : (
                <p className="text-center col-span-full text-gray-500">No hay productos disponibles.</p>

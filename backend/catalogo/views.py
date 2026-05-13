@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from .models import Categoria, Producto, ProductoImagen, Pedido, DetallePedido
 from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializer, VentaProductorSerializer, RegistroSerializer
 from django.db.models import Q
+from django.conf import settings
+import requests
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -73,6 +75,33 @@ class ProductoViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Imagen subida correctamente'}, status=status.HTTP_201_CREATED)
         else:
             return Response({'error': 'No se detectó ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
+    def maridaje(self, request, pk=None):
+        producto = self.get_object()
+        
+        prompt = f"Eres un experto sumiller y gastrónomo. Escribe un maridaje perfecto, en un máximo de 3 líneas breves, para este producto gourmet. Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
+        
+        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+        headers = {"Authorization": f"Bearer {getattr(settings, 'HUGGINGFACE_API_KEY', '')}"}
+        
+        payload = {
+            "inputs": f"[INST] {prompt} [/INST]",
+            "parameters": {"max_new_tokens": 150, "temperature": 0.7}
+        }
+        
+        try:
+            response = requests.post(API_URL, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                # Extraemos solo la respuesta de la IA, limpiando el prompt inicial
+                respuesta_ia = data[0]['generated_text'].split('[/INST]')[-1].strip()
+                return Response({'recomendacion': respuesta_ia})
+            else:
+                return Response({'error': 'La IA está saturada, inténtalo en unos segundos.'}, status=503)
+                
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
