@@ -31,6 +31,10 @@ class Producto(models.Model):
     
     estado_moderacion = models.CharField(max_length=20, choices=ESTADOS_MODERACION, default='Pendiente')
 
+    class Meta:
+        unique_together = ('nombre', 'productor')
+        ordering = ['-id'] 
+
     def __str__(self):
         return f"{self.nombre} - {self.productor.nombre_completo}"
 
