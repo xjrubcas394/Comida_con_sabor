@@ -82,7 +82,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        API_URL = "https://huggingface.co/HuggingFaceH4/mistral-7b-sft-beta"
+        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/mistral-7b-sft-beta"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
