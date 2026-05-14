@@ -33,7 +33,7 @@ class Producto(models.Model):
 
     class Meta:
         unique_together = ('nombre', 'productor')
-        ordering = ['-id'] 
+        ordering = ['-id']
 
     def __str__(self):
         return f"{self.nombre} - {self.productor.nombre_completo}"

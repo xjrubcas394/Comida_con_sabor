@@ -21,7 +21,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     filter_backends = [filters.SearchFilter]
-    search_fields = ['nombre', 'categoria__nombre']
+    search_fields = ['nombre', 'categoria__nombre', 'productor__email']
 
     def get_queryset(self):
         user = self.request.user

@@ -86,6 +86,9 @@ function Catalogo() {
   const [datosPaginados, setDatosPaginados] = useState({ results: [], next: null, previous: null })
   const [cargando, setCargando] = useState(true)
   const { agregarAlCarrito } = useCart();
+  
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
+  const categoriasDestacadas = ["Quesos", "Vinos", "Aceites", "Dulces", "Conservas"];
 
   const cargarPagina = (url = `${import.meta.env.VITE_API_URL}/api/catalogo/productos/`) => {
     setCargando(true);
@@ -101,16 +104,73 @@ function Catalogo() {
       })
   }
 
+  const buscarProductos = (e) => {
+    e.preventDefault();
+    cargarPagina(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/?search=${terminoBusqueda}`);
+  };
+
+  const buscarPorCategoria = (categoria) => {
+    setTerminoBusqueda(categoria);
+    cargarPagina(`${import.meta.env.VITE_API_URL}/api/catalogo/productos/?search=${categoria}`);
+  };
+
   useEffect(() => {
     cargarPagina();
   }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <header className="mb-12 text-center">
+      <header className="mb-10 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Comida Con Sabor</h1>
         <p className="text-lg text-gray-600">Catálogo Gourmet Artesanal</p>
       </header>
+
+      <form onSubmit={buscarProductos} className="max-w-3xl mx-auto mb-10 flex gap-3">
+        <input
+          type="text"
+          placeholder="Buscar por nombre del producto o email del productor..."
+          value={terminoBusqueda}
+          onChange={(e) => setTerminoBusqueda(e.target.value)}
+          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+        />
+        <button
+          type="submit"
+          className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          Buscar
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTerminoBusqueda('');
+            cargarPagina();
+          }}
+          className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors shadow-sm"
+        >
+          Limpiar
+        </button>
+      </form>
+
+      <div className="max-w-3xl mx-auto mb-10 flex flex-wrap justify-center gap-3">
+        <button
+          onClick={() => {
+            setTerminoBusqueda('');
+            cargarPagina();
+          }}
+          className="px-5 py-2 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors shadow-sm"
+        >
+          Todos los productos
+        </button>
+        {categoriasDestacadas.map(cat => (
+          <button
+            key={cat}
+            onClick={() => buscarPorCategoria(cat)}
+            className="px-5 py-2 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors shadow-sm"
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
       {cargando ? (
         <p className="text-center text-gray-500">Cargando delicias...</p>
@@ -118,7 +178,6 @@ function Catalogo() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {datosPaginados.results.length > 0 ? (
-              // Usamos nuestro nuevo componente aquí
               datosPaginados.results.map(producto => (
                 <ProductoCard 
                   key={producto.id} 
@@ -127,7 +186,9 @@ function Catalogo() {
                 />
               ))
             ) : (
-               <p className="text-center col-span-full text-gray-500">No hay productos disponibles.</p>
+               <p className="text-center col-span-full text-gray-500 text-lg py-10 bg-white rounded-xl shadow-sm border border-gray-100">
+                 No hemos encontrado ningún producto con esa búsqueda 🕵️‍♂️
+               </p>
             )}
           </div>
 
