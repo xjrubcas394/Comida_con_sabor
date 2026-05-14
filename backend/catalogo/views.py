@@ -82,9 +82,11 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        # 1. Ruta directa y clásica al modelo (sin el /v1/chat/completions)
         API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
+        
+        if not api_key or api_key.strip() == '':
+            return Response({'error': '¡Tengo razón! El token está vacío. Render no lo está leyendo.'}, status=500)
         
         headers = {
             "Authorization": f"Bearer {api_key}",
