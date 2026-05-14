@@ -9,7 +9,6 @@ from django.db.models import Q
 from django.conf import settings
 import urllib.request
 import json
-from urllib.error import URLError, HTTPError
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -82,28 +81,26 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta/v1/chat/completions"
+        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+        prompt_formateado = (
+            "<|system|>\nEres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto.</s>\n"
+            f"<|user|>\nProducto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}.</s>\n"
+            "<|assistant|>\n"
+        )
         
         payload = {
-            "model": "HuggingFaceH4/zephyr-7b-beta",
-            "messages": [
-                {
-                    "role": "system", 
-                    "content": "Eres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto."
-                },
-                {
-                    "role": "user", 
-                    "content": f"Producto: {producto.nombre}. {producto.historia or ''}"
-                }
-            ],
-            "max_tokens": 100, 
-            "temperature": 0.7
+            "inputs": prompt_formateado,
+            "parameters": {
+                "max_new_tokens": 100, 
+                "temperature": 0.7,
+                "return_full_text": False
+            }
         }
         
         try:
@@ -113,7 +110,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
             with urllib.request.urlopen(req, timeout=8) as response:
                 if response.getcode() == 200:
                     respuesta_json = json.loads(response.read().decode('utf-8'))
-                    respuesta_ia = respuesta_json['choices'][0]['message']['content'].strip()
+                    respuesta_ia = respuesta_json[0]['generated_text'].strip()
                     return Response({'recomendacion': respuesta_ia})
                     
         except Exception as e:
