@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from .models import Categoria, Producto, ProductoImagen, Pedido, DetallePedido
 from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializer, VentaProductorSerializer, RegistroSerializer
 from django.db.models import Q
-from ..core.settings import settings
+from django.conf import settings
 import requests
 import json
 import random
