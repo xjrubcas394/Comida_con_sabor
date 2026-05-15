@@ -83,7 +83,8 @@ class ProductoViewSet(viewsets.ModelViewSet):
         producto = self.get_object()
         
         # API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/mistral-7b-sft-beta"
-        API_URL = "https://api-inference.huggingface.co/openai/gpt-oss-120b"
+        hf_model = getattr(settings, 'HUGGINGFACE_MODEL', 'gpt-oss-120b')
+        API_URL = f"https://api-inference.huggingface.co/models/{hf_model}"
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
