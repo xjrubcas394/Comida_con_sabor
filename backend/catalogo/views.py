@@ -104,9 +104,37 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 "return_full_text": False
             }
         }
-        # Si se ha configurado OPENAI_API_KEY en el entorno, probar OpenAI primero
+        google_key = getattr(settings, 'GOOGLE_API_KEY', '')
+        google_model = getattr(settings, 'GOOGLE_MODEL', 'gemini-1.5-mini')
         openai_key = getattr(settings, 'OPENAI_API_KEY', '')
         openai_model = getattr(settings, 'OPENAI_MODEL', 'gpt-3.5-turbo')
+
+        if google_key:
+            try:
+                ga_url = f"https://generativelanguage.googleapis.com/v1beta2/models/{google_model}:generate?key={google_key}"
+                ga_payload = {
+                    "prompt": {
+                        "text": (
+                            "Eres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto.\n"
+                            f"Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
+                        )
+                    },
+                    "temperature": 0.7,
+                    "maxOutputTokens": 150
+                }
+                resp_ga = requests.post(ga_url, json=ga_payload, timeout=12)
+                if resp_ga.status_code == 200:
+                    try:
+                        data_ga = resp_ga.json()
+                        text = data_ga.get('candidates', [])[0].get('output', '').strip()
+                        if text:
+                            return Response({'recomendacion': text})
+                    except Exception as e:
+                        print("Error parseando respuesta Gemini/Google:", e)
+                else:
+                    print(f"Google Gemini returned status {resp_ga.status_code}: {resp_ga.text}")
+            except Exception as e:
+                print("Error al llamar Gemini/Google, se probará OpenAI/Hugging Face si están configurados:", e)
 
         if openai_key:
             try:
