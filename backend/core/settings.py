@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary_storage',
+    'cloudinary',
     'corsheaders',
     'rest_framework',
     'usuarios',
@@ -135,11 +137,11 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STORAGES = {
-    # Esto es lo que nos faltaba para que guarde las fotos (Media)
+    # Mandamos las fotos subidas por los usuarios a Cloudinary
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
-    # Esto es lo que ya teníamos para el CSS (Static)
+    # Mantenemos WhiteNoise para el CSS y JS interno
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
@@ -180,3 +182,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 HUGGINGFACE_API_KEY = os.environ.get('HUGGINGFACE_API_KEY', '')
 
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET')
+}
