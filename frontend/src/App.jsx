@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Link, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import { useCart } from './context/CartContext'
 import Login from './pages/Login'
@@ -7,6 +7,7 @@ import Perfil from './pages/Perfil'
 import Checkout from './pages/Checkout'
 import Registro from './pages/Registro';
 import PanelAdmin from './pages/PanelAdmin';
+import ProductoDetalle from './pages/ProductoDetalle';
 
 function ProductoCard({ producto, agregarAlCarrito }) {
   const [recomendacionIA, setRecomendacionIA] = useState(null);
@@ -31,26 +32,26 @@ function ProductoCard({ producto, agregarAlCarrito }) {
     }
   };
 
+  
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
-      <div className="h-48 bg-gray-200 overflow-hidden shrink-0">
+      <Link to={`/producto/${producto.id}`} className="h-48 bg-gray-200 overflow-hidden shrink-0 block hover:opacity-90 transition-opacity">
         {producto.imagenes && producto.imagenes.length > 0 ? (
           <img src={producto.imagenes[0].imagen} alt={producto.nombre} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
         )}
-      </div>
+      </Link>
       
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-2">
-          <h2 className="text-xl font-bold text-gray-800">{producto.nombre}</h2>
+          <Link to={`/producto/${producto.id}`}>
+            <h2 className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">{producto.nombre}</h2>
+          </Link>
           <span className="text-lg font-semibold text-green-600">{producto.precio}€</span>
         </div>
-        <div className="pt-4 border-t border-gray-100 text-sm text-gray-500 mb-4">
-          Productor: <span className="font-medium text-gray-700">{producto.productor_nombre}</span>
-        </div>
+      
         
-        {/* Contenedor de botones (mt-auto empuja los botones al fondo para alinear todas las tarjetas) */}
         <div className="mt-auto flex flex-col gap-3">
           <button 
             onClick={() => agregarAlCarrito(producto)}
@@ -59,7 +60,6 @@ function ProductoCard({ producto, agregarAlCarrito }) {
             Añadir al carrito
           </button>
 
-          {/* BOTÓN MÁGICO DE IA */}
           <button 
             onClick={consultarMaridaje}
             disabled={cargandoIA}
@@ -68,7 +68,6 @@ function ProductoCard({ producto, agregarAlCarrito }) {
             {cargandoIA ? 'Pensando maridaje...' : '✨ Sugerir Maridaje (IA)'}
           </button>
 
-          {/* RESPUESTA DE LA IA */}
           {recomendacionIA && (
             <div className="mt-1 p-3 bg-purple-50 border border-purple-200 rounded-lg shadow-sm animate-fade-in">
               <p className="text-sm text-purple-900 font-medium italic">
@@ -220,6 +219,7 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Catalogo />} />
+        <Route path="/producto/:id" element={<ProductoDetalle />} />
         <Route path="/login" element={<Login />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/perfil" element={<Perfil />} />
