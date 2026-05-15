@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from .models import Categoria, Producto, ProductoImagen, Pedido, DetallePedido
 from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializer, VentaProductorSerializer, RegistroSerializer
 from django.db.models import Q
-from django.conf import settings
+from ..core.settings import settings
 import requests
 import json
 import random
@@ -84,7 +84,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
         
         # 1. Obtenemos la clave y montamos la URL de Gemini
         api_key = getattr(settings, 'GOOGLE_API_KEY', '')
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         
         headers = {'Content-Type': 'application/json'}
         
