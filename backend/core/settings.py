@@ -178,3 +178,5 @@ SIMPLE_JWT = {
 CORS_ALLOW_ALL_ORIGINS = True
 
 HUGGINGFACE_API_KEY = os.environ.get('HUGGINGFACE_API_KEY', '')
+
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')

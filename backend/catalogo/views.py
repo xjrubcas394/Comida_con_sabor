@@ -82,153 +82,44 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
-        # API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/mistral-7b-sft-beta"
-        hf_model = getattr(settings, 'HUGGINGFACE_MODEL', 'openai/gpt-oss-120b')
-        hf_urls = [f"https://api-inference.huggingface.co/models/{hf_model}"]
-        if '/' not in hf_model and hf_model.startswith('gpt-'):
-            hf_urls.append(f"https://api-inference.huggingface.co/models/openai/{hf_model}")
-        api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
+        api_key = getattr(settings, 'GOOGLE_API_KEY', '')
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        prompt_formateado = (
-            "<|system|>\nEres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto.</s>\n"
-            f"<|user|>\nProducto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}.</s>\n"
-            "<|assistant|>\n"
+        headers = {'Content-Type': 'application/json'}
+        
+        prompt = (
+            f"Eres un sumiller experto. Responde en español en un máximo de 2 líneas. "
+            f"¿Con qué marida mejor este producto artesanal? "
+            f"Nombre: {producto.nombre}. Historia: {producto.historia or 'Sin descripción'}."
         )
         
         payload = {
-            "inputs": prompt_formateado,
-            "parameters": {
-                "max_new_tokens": 100, 
-                "temperature": 0.7,
-                "return_full_text": False
-            }
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
         }
-        google_key = getattr(settings, 'GOOGLE_API_KEY', '')
-        google_model = getattr(settings, 'GOOGLE_MODEL', 'gemini-1.5-mini')
-        openai_key = getattr(settings, 'OPENAI_API_KEY', '')
-        openai_model = getattr(settings, 'OPENAI_MODEL', 'gpt-3.5-turbo')
-
-        if google_key:
-            try:
-                ga_url = f"https://generativelanguage.googleapis.com/v1beta2/models/{google_model}:generate?key={google_key}"
-                ga_payload = {
-                    "prompt": {
-                        "text": (
-                            "Eres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto.\n"
-                            f"Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."
-                        )
-                    },
-                    "temperature": 0.7,
-                    "maxOutputTokens": 150
-                }
-                resp_ga = requests.post(ga_url, json=ga_payload, timeout=12)
-                if resp_ga.status_code == 200:
-                    try:
-                        data_ga = resp_ga.json()
-                        text = data_ga.get('candidates', [])[0].get('output', '').strip()
-                        if text:
-                            return Response({'recomendacion': text})
-                    except Exception as e:
-                        print("Error parseando respuesta Gemini/Google:", e)
-                else:
-                    print(f"Google Gemini returned status {resp_ga.status_code}: {resp_ga.text}")
-            except Exception as e:
-                print("Error al llamar Gemini/Google, se probará OpenAI/Hugging Face si están configurados:", e)
-
-        if openai_key:
-            try:
-                oa_headers = {
-                    "Authorization": f"Bearer {openai_key}",
-                    "Content-Type": "application/json"
-                }
-                oa_payload = {
-                    "model": openai_model,
-                    "messages": [
-                        {"role": "system", "content": "Eres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto."},
-                        {"role": "user", "content": f"Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."}
-                    ],
-                    "temperature": 0.7,
-                    "max_tokens": 150
-                }
-
-                resp_oa = requests.post("https://api.openai.com/v1/chat/completions", headers=oa_headers, json=oa_payload, timeout=12)
-                if resp_oa.status_code == 200:
-                    try:
-                        j = resp_oa.json()
-                        text = j.get('choices', [])[0].get('message', {}).get('content', '').strip()
-                        if text:
-                            return Response({'recomendacion': text})
-                    except Exception as e:
-                        print("Error parseando respuesta OpenAI:", e)
-                else:
-                    print(f"OpenAI returned status {resp_oa.status_code}: {resp_oa.text}")
-            except Exception as e:
-                print("Error al llamar OpenAI, se probará Hugging Face si está configurado:", e)
         
         try:
-            resp = None
-            for url in hf_urls:
-                resp = requests.post(url, headers=headers, json=payload, timeout=12)
-                if resp.status_code == 200:
-                    break
-                if resp.status_code == 404:
-                    print(f"HuggingFace model not found at {url}; probando siguiente URL.")
-                    resp = None
-                    continue
-                break
-            if resp is None:
-                raise Exception(f"HuggingFace no encontró el modelo en ninguna de las rutas: {hf_urls}")
-            raw = resp.text
-            status_code = resp.status_code
-            raw = resp.text
-            status_code = resp.status_code
-
-            if status_code != 200:
-                print(f"HuggingFace returned status {status_code}: {raw}")
-                resp.raise_for_status()
-
-            # Intentar parsear varias formas de respuesta que puede devolver la API
-            try:
-                respuesta_json = resp.json()
-            except ValueError:
-                respuesta_json = raw
-
-            recomendacion_text = None
-
-            if isinstance(respuesta_json, list) and len(respuesta_json) > 0:
-                first = respuesta_json[0]
-                if isinstance(first, dict):
-                    recomendacion_text = first.get('generated_text') or first.get('text')
-            elif isinstance(respuesta_json, dict):
-                recomendacion_text = respuesta_json.get('generated_text') or respuesta_json.get('text')
-            elif isinstance(respuesta_json, str):
-                recomendacion_text = respuesta_json
-
-            if recomendacion_text:
-                recomendacion_ia = recomendacion_text.strip()
-                return Response({'recomendacion': recomendacion_ia})
-
-            # Si no se obtuvo texto utilizable, lanzar para caer al salvavidas
-            print("Respuesta IA inesperada:", repr(respuesta_json))
-            raise Exception('Respuesta IA inesperada')
-
+            data = json.dumps(payload).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.getcode() == 200:
+                    respuesta_json = json.loads(response.read().decode('utf-8'))
+                    # Extraemos el texto de la estructura de respuesta de Google
+                    respuesta_ia = respuesta_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                    return Response({'recomendacion': respuesta_ia})
+                    
         except Exception as e:
-            print(f"Error de IA silenciado: {str(e)}")
-
+            print(f"Fallo en Gemini, activando salvavidas: {str(e)}")
+            # Mantenemos tu sistema de tolerancia a fallos para asegurar la demo
+            import random
             respuestas_simuladas = [
-                f"Este excelente producto ({producto.nombre}) marida a la perfección con un vino tinto joven de la tierra y pan rústico, realzando todas sus notas de sabor.",
-                f"Para disfrutar al máximo de {producto.nombre}, nuestra recomendación es acompañarlo con un vino blanco muy frío y unas tostadas finas de cristal.",
-                f"El perfil de sabor de {producto.nombre} combina de manera increíble con una cerveza artesanal tostada y un surtido de frutos secos.",
-                f"Te sugerimos servir {producto.nombre} a temperatura ambiente junto a una copa de cava o un espumoso ligero para limpiar el paladar."
+                f"Este excelente {producto.nombre} marida a la perfección con un vino tinto joven de la tierra y pan rústico.",
+                f"Nuestra recomendación para {producto.nombre} es acompañarlo con un vino blanco muy frío.",
+                f"El perfil de sabor de {producto.nombre} combina de manera increíble con una cerveza artesanal tostada."
             ]
-
-            salvavidas = random.choice(respuestas_simuladas)
-
-            return Response({'recomendacion': salvavidas})
+            return Response({'recomendacion': random.choice(respuestas_simuladas)})
 
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
