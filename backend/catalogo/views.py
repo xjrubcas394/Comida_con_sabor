@@ -104,6 +104,39 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 "return_full_text": False
             }
         }
+        # Si se ha configurado OPENAI_API_KEY en el entorno, probar OpenAI primero
+        openai_key = getattr(settings, 'OPENAI_API_KEY', '')
+        openai_model = getattr(settings, 'OPENAI_MODEL', 'gpt-3.5-turbo')
+
+        if openai_key:
+            try:
+                oa_headers = {
+                    "Authorization": f"Bearer {openai_key}",
+                    "Content-Type": "application/json"
+                }
+                oa_payload = {
+                    "model": openai_model,
+                    "messages": [
+                        {"role": "system", "content": "Eres un sumiller experto. Responde en español en un máximo de 2 líneas con un maridaje para este producto."},
+                        {"role": "user", "content": f"Producto: {producto.nombre}. Descripción: {producto.historia or 'Sin descripción'}."}
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 150
+                }
+
+                resp_oa = requests.post("https://api.openai.com/v1/chat/completions", headers=oa_headers, json=oa_payload, timeout=12)
+                if resp_oa.status_code == 200:
+                    try:
+                        j = resp_oa.json()
+                        text = j.get('choices', [])[0].get('message', {}).get('content', '').strip()
+                        if text:
+                            return Response({'recomendacion': text})
+                    except Exception as e:
+                        print("Error parseando respuesta OpenAI:", e)
+                else:
+                    print(f"OpenAI returned status {resp_oa.status_code}: {resp_oa.text}")
+            except Exception as e:
+                print("Error al llamar OpenAI, se probará Hugging Face si está configurado:", e)
         
         try:
             resp = requests.post(API_URL, headers=headers, json=payload, timeout=12)
