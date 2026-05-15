@@ -83,8 +83,10 @@ class ProductoViewSet(viewsets.ModelViewSet):
         producto = self.get_object()
         
         # API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/mistral-7b-sft-beta"
-        hf_model = getattr(settings, 'HUGGINGFACE_MODEL', 'gpt-oss-120b')
-        API_URL = f"https://api-inference.huggingface.co/models/{hf_model}"
+        hf_model = getattr(settings, 'HUGGINGFACE_MODEL', 'openai/gpt-oss-120b')
+        hf_urls = [f"https://api-inference.huggingface.co/models/{hf_model}"]
+        if '/' not in hf_model and hf_model.startswith('gpt-'):
+            hf_urls.append(f"https://api-inference.huggingface.co/models/openai/{hf_model}")
         api_key = getattr(settings, 'HUGGINGFACE_API_KEY', '')
         
         headers = {
@@ -168,7 +170,20 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 print("Error al llamar OpenAI, se probará Hugging Face si está configurado:", e)
         
         try:
-            resp = requests.post(API_URL, headers=headers, json=payload, timeout=12)
+            resp = None
+            for url in hf_urls:
+                resp = requests.post(url, headers=headers, json=payload, timeout=12)
+                if resp.status_code == 200:
+                    break
+                if resp.status_code == 404:
+                    print(f"HuggingFace model not found at {url}; probando siguiente URL.")
+                    resp = None
+                    continue
+                break
+            if resp is None:
+                raise Exception(f"HuggingFace no encontró el modelo en ninguna de las rutas: {hf_urls}")
+            raw = resp.text
+            status_code = resp.status_code
             raw = resp.text
             status_code = resp.status_code
 
