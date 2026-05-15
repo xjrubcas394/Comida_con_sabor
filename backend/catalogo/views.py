@@ -7,7 +7,7 @@ from .models import Categoria, Producto, ProductoImagen, Pedido, DetallePedido
 from .serializers import CategoriaSerializer, ProductoSerializer, PedidoSerializer, VentaProductorSerializer, RegistroSerializer
 from django.db.models import Q
 from django.conf import settings
-import urllib.request
+import requests
 import json
 import random
 
@@ -106,27 +106,51 @@ class ProductoViewSet(viewsets.ModelViewSet):
         }
         
         try:
-            data = json.dumps(payload).encode('utf-8')
-            req = urllib.request.Request(API_URL, data=data, headers=headers)
-            
-            with urllib.request.urlopen(req, timeout=8) as response:
-                if response.getcode() == 200:
-                    respuesta_json = json.loads(response.read().decode('utf-8'))
-                    respuesta_ia = respuesta_json[0]['generated_text'].strip()
-                    return Response({'recomendacion': respuesta_ia})
-                    
+            resp = requests.post(API_URL, headers=headers, json=payload, timeout=12)
+            raw = resp.text
+            status_code = resp.status_code
+
+            if status_code != 200:
+                print(f"HuggingFace returned status {status_code}: {raw}")
+                resp.raise_for_status()
+
+            # Intentar parsear varias formas de respuesta que puede devolver la API
+            try:
+                respuesta_json = resp.json()
+            except ValueError:
+                respuesta_json = raw
+
+            recomendacion_text = None
+
+            if isinstance(respuesta_json, list) and len(respuesta_json) > 0:
+                first = respuesta_json[0]
+                if isinstance(first, dict):
+                    recomendacion_text = first.get('generated_text') or first.get('text')
+            elif isinstance(respuesta_json, dict):
+                recomendacion_text = respuesta_json.get('generated_text') or respuesta_json.get('text')
+            elif isinstance(respuesta_json, str):
+                recomendacion_text = respuesta_json
+
+            if recomendacion_text:
+                recomendacion_ia = recomendacion_text.strip()
+                return Response({'recomendacion': recomendacion_ia})
+
+            # Si no se obtuvo texto utilizable, lanzar para caer al salvavidas
+            print("Respuesta IA inesperada:", repr(respuesta_json))
+            raise Exception('Respuesta IA inesperada')
+
         except Exception as e:
             print(f"Error de IA silenciado: {str(e)}")
-            
+
             respuestas_simuladas = [
                 f"Este excelente producto ({producto.nombre}) marida a la perfección con un vino tinto joven de la tierra y pan rústico, realzando todas sus notas de sabor.",
                 f"Para disfrutar al máximo de {producto.nombre}, nuestra recomendación es acompañarlo con un vino blanco muy frío y unas tostadas finas de cristal.",
                 f"El perfil de sabor de {producto.nombre} combina de manera increíble con una cerveza artesanal tostada y un surtido de frutos secos.",
                 f"Te sugerimos servir {producto.nombre} a temperatura ambiente junto a una copa de cava o un espumoso ligero para limpiar el paladar."
             ]
-            
+
             salvavidas = random.choice(respuestas_simuladas)
-            
+
             return Response({'recomendacion': salvavidas})
 
 class PedidoViewSet(viewsets.ModelViewSet):
