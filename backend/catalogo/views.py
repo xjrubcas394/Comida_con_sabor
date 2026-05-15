@@ -82,17 +82,20 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def maridaje(self, request, pk=None):
         producto = self.get_object()
         
+        # 1. Obtenemos la clave y montamos la URL de Gemini
         api_key = getattr(settings, 'GOOGLE_API_KEY', '')
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
         headers = {'Content-Type': 'application/json'}
         
+        # 2. El Prompt: Le damos el rol de sumiller y los datos del producto
         prompt = (
             f"Eres un sumiller experto. Responde en español en un máximo de 2 líneas. "
             f"¿Con qué marida mejor este producto artesanal? "
             f"Nombre: {producto.nombre}. Historia: {producto.historia or 'Sin descripción'}."
         )
         
+        # 3. Formato JSON específico que exige Google
         payload = {
             "contents": [{
                 "parts": [{"text": prompt}]
@@ -100,25 +103,24 @@ class ProductoViewSet(viewsets.ModelViewSet):
         }
         
         try:
-            data = json.dumps(payload).encode('utf-8')
-            req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
             
-            with urllib.request.urlopen(req, timeout=10) as response:
-                if response.getcode() == 200:
-                    respuesta_json = json.loads(response.read().decode('utf-8'))
-                    # Extraemos el texto de la estructura de respuesta de Google
-                    respuesta_ia = respuesta_json['candidates'][0]['content']['parts'][0]['text'].strip()
-                    return Response({'recomendacion': respuesta_ia})
-                    
+            if response.status_code == 200:
+                respuesta_json = response.json()
+                respuesta_ia = respuesta_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                return Response({'recomendacion': respuesta_ia})
+            else:
+                raise Exception(f"Error HTTP {response.status_code}: {response.text}")
+                
         except Exception as e:
-            print(f"Fallo en Gemini, activando salvavidas: {str(e)}")
-            # Mantenemos tu sistema de tolerancia a fallos para asegurar la demo
-            import random
+            print(f"Fallo en IA, activando salvavidas: {str(e)}")
+            
             respuestas_simuladas = [
-                f"Este excelente {producto.nombre} marida a la perfección con un vino tinto joven de la tierra y pan rústico.",
-                f"Nuestra recomendación para {producto.nombre} es acompañarlo con un vino blanco muy frío.",
+                f"Este excelente producto ({producto.nombre}) marida a la perfección con un vino tinto joven de la tierra y pan rústico.",
+                f"Nuestra recomendación para disfrutar al máximo de {producto.nombre} es acompañarlo con un vino blanco muy frío.",
                 f"El perfil de sabor de {producto.nombre} combina de manera increíble con una cerveza artesanal tostada."
             ]
+            
             return Response({'recomendacion': random.choice(respuestas_simuladas)})
 
 class PedidoViewSet(viewsets.ModelViewSet):
